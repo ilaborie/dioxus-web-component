@@ -1,0 +1,24 @@
+[package]
+name = "greeting"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+description = "Greeting web component example"
+keywords = ["dioxus", "web-component", "wasm"]
+categories = ["wasm", "web-programming"]
+readme = "README.md"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dioxus-web-component = { path = "../../dioxus-web-component" }
+dioxus = { workspace = true, features = ["web"] }
+wasm-bindgen = { workspace = true }
+gloo = { workspace = true, default-features = false, features = ["console"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,32 @@
+[package]
+name = "dioxus-web-component"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+description = "Expose a Dioxus component as a Web Component"
+categories = ["gui", "wasm", "web-programming"]
+keywords = ["dioxus", "web-component", "wasm"]
+readme = "README.md"
+
+[dependencies]
+async-channel = { workspace = true }
+dioxus = { workspace = true, default-features = false, features = ["web"] }
+wasm-bindgen = { workspace = true }
+
+[dependencies.web-sys]
+workspace = true
+features = [
+  "Document",
+  "Element",
+  "HtmlElement",
+  "Node",
+  "Window",
+  "CustomEvent",
+  "ShadowRoot",
+]
+
+[lints]
+workspace = true
