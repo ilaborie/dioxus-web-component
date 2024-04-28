@@ -5,6 +5,7 @@ edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
+rust-version = { workspace = true }
 
 description = "Expose a Dioxus component as a Web Component"
 categories = ["gui", "wasm", "web-programming"]

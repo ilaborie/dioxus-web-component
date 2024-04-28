@@ -15,10 +15,10 @@ readme = "README.md"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-dioxus-web-component = { path = "../../dioxus-web-component" }
 dioxus = { workspace = true, features = ["web"] }
-wasm-bindgen = { workspace = true }
+dioxus-web-component = { path = "../../dioxus-web-component" }
 gloo = { workspace = true, default-features = false, features = ["console"] }
+wasm-bindgen = { workspace = true }
 
 [lints]
 workspace = true
