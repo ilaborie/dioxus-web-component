@@ -20,9 +20,7 @@ pub fn register() -> Result<(), JsValue> {
 /// The Dioxus component
 #[component]
 fn Greetings(name: String) -> Element {
-    rsx! {
-        p { "Hello {name}!" }
-    }
+    rsx! { p { "Hello {name}!" } }
 }
 
 struct GreetingsWebComponent;
@@ -42,10 +40,6 @@ impl DioxusWebComponent for GreetingsWebComponent {
             }
         });
 
-        rsx! {
-            Greetings {
-                name: name_signal
-            }
-        }
+        rsx! { Greetings { name: name_signal } }
     }
 }
