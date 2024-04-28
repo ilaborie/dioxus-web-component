@@ -21,6 +21,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN  }}
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Check format
+        run: cargo fmt --all -- --check
+      - name: Check lint
+        run: cargo clippy --workspace --all-features --all-targets
+      - name: Test
+        run: cargo test
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5
         env:
