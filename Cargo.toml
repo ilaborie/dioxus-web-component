@@ -8,6 +8,7 @@ edition = "2021"
 authors = ["ilaborie@gmail.com"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ilaborie/dioxus-web-component"
+rust-version = "1.75.0"
 
 [workspace.dependencies]
 async-channel = "2.2.1"

@@ -1,0 +1,64 @@
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+name: Continuous integration
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  MSRV: 1.75.0
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - rust: $MSRV
+          - rust: stable
+          - rust: beta
+          - rust: nightly
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Build
+        run: cargo build --verbose
+      - name: Documentation
+        run: cargo doc --verbose
+      - name: Tests
+        run: cargo test --verbose
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@beta
+        with:
+          components: clippy
+      - name: Lint
+        run: cargo clippy
+
+  minimal-versions:
+    name: Check MSRV and minimal-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: $MSRV
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+      - run: cargo +nightly hack generate-lockfile --remove-dev-deps -Z direct-minimal-versions
+      - name: Build
+        run: cargo build --verbose --all-features
