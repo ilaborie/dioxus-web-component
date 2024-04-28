@@ -14,7 +14,7 @@ readme = "README.md"
 
 [dependencies]
 async-channel = { workspace = true }
-dioxus = { workspace = true, default-features = false, features = ["web"] }
+dioxus = { workspace = true, default-features = true, features = ["web"] }
 wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]

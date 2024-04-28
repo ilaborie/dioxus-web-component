@@ -1,12 +1,12 @@
 [package]
-name = "greeting"
+name = "counter"
 version = { workspace = true }
 edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 
-description = "Greeting web component example"
+description = "Counter web component example"
 keywords = ["dioxus", "web-component", "wasm"]
 categories = ["wasm", "web-programming"]
 readme = "README.md"

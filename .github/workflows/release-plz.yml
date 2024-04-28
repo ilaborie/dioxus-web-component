@@ -29,6 +29,8 @@ jobs:
         run: cargo clippy --workspace --all-features --all-targets
       - name: Test
         run: cargo test
+      - name: Cleanup
+        run: rm Cargo.lock
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5
         env:

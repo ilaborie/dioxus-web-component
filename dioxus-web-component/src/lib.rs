@@ -6,6 +6,11 @@ use wasm_bindgen::prelude::*;
 
 use crate::rust_component::RustComponent;
 
+mod event;
+pub use self::event::*;
+
+mod rust_component;
+
 /// A message send to the dioxus component
 #[non_exhaustive]
 pub enum Message {
@@ -26,9 +31,6 @@ pub struct Context {
     /// The message receiver
     pub rx: Receiver<Message>,
 }
-
-mod event;
-mod rust_component;
 
 /// Dioxus web component
 pub trait DioxusWebComponent {
