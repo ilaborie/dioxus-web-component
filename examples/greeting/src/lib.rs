@@ -1,8 +1,12 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
+use std::borrow::Cow::Borrowed;
+
 use dioxus::prelude::*;
-use dioxus_web_component::{register_dioxus_web_component, Context, DioxusWebComponent, Message};
+use dioxus_web_component::{
+    register_dioxus_web_component, Context, DioxusWebComponent, InjectedStyle, Message,
+};
 use wasm_bindgen::prelude::*;
 
 /// Install (register) the web component
@@ -26,6 +30,11 @@ fn Greetings(name: String) -> Element {
 struct GreetingsWebComponent;
 
 impl DioxusWebComponent for GreetingsWebComponent {
+    fn style() -> InjectedStyle {
+        let css = include_str!("./style.css");
+        InjectedStyle::Css(Borrowed(css))
+    }
+
     fn attributes() -> &'static [&'static str] {
         &["name"]
     }

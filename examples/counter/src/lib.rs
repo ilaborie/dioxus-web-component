@@ -1,10 +1,12 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
+use std::borrow::Cow;
+
 use dioxus::prelude::*;
 use dioxus_web_component::{
     custom_event_handler, register_dioxus_web_component, Context, CustomEventOptions,
-    DioxusWebComponent,
+    DioxusWebComponent, InjectedStyle,
 };
 use wasm_bindgen::prelude::*;
 
@@ -26,22 +28,25 @@ fn Counter(on_count: EventHandler<i32>) -> Element {
     let mut counter = use_signal(|| 0);
 
     rsx! {
-
         button {
-            margin: ".24rem 0",
             onclick: move |_| {
                 counter += 1;
                 on_count(*counter.read());
             },
             "+"
         }
-        output { margin: "0 1ch", "{counter}" }
+        output { "{counter}" }
     }
 }
 
 struct CounterWebComponent;
 
 impl DioxusWebComponent for CounterWebComponent {
+    fn style() -> InjectedStyle {
+        let url = Cow::Borrowed("./style.css");
+        InjectedStyle::Stylesheet(url)
+    }
+
     fn attributes() -> &'static [&'static str] {
         &["name"]
     }

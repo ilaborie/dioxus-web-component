@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
+use std::borrow::Cow;
+
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -32,6 +34,18 @@ pub struct Context {
     pub rx: Receiver<Message>,
 }
 
+/// Provide style to the web component
+#[derive(Debug, Clone, Default)]
+pub enum InjectedStyle {
+    /// No style provided
+    #[default]
+    None,
+    /// Raw CSS content to go in an HTML `<style>`
+    Css(Cow<'static, str>),
+    /// Url containing the stylesheet to go in an HTML `<link rel="stylesheet" href="...">`
+    Stylesheet(Cow<'static, str>),
+}
+
 /// Dioxus web component
 pub trait DioxusWebComponent {
     /// Provide observable attributes
@@ -42,6 +56,12 @@ pub trait DioxusWebComponent {
 
     /// Provide the dioxus element
     fn element() -> Element;
+
+    /// Provide the CSS style
+    #[must_use]
+    fn style() -> InjectedStyle {
+        InjectedStyle::default()
+    }
 }
 
 /// Register a Dioxus web component
@@ -52,7 +72,13 @@ where
     // TODO we could validate the custom element name ?
     // See https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names
     let attributes = E::attributes().iter().map(ToString::to_string).collect();
-    let rust_component = RustComponent::new(attributes, E::element);
+    let dx_el_builder = E::element;
+    let style = E::style();
+    let rust_component = RustComponent {
+        attributes,
+        dx_el_builder,
+        style,
+    };
     register_web_component(custom_tag, rust_component);
 }
 

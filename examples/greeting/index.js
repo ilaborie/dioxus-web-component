@@ -12,3 +12,11 @@ btn.onclick = () => {
       .forEach((el) => el.setAttribute("name", name));
   }
 };
+
+const colorInput = document.querySelector("input[type=color]");
+colorInput.oninput = () => {
+  let color = colorInput.value;
+    document
+      .querySelectorAll("plop-greeting")
+      .forEach((el) => el.style.setProperty("--my-color", color));
+};
