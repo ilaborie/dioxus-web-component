@@ -12,12 +12,12 @@ pub struct CustomEventOptions {
     /// Is the event bubble up through the DOM tree
     ///
     /// See [MDN - bubbles](https://developer.mozilla.org/en-US/docs/Web/API/Event/bubbles)
-    can_bubble: bool,
+    pub can_bubble: bool,
 
     /// Is the event is cancelable
     ///
     /// See [MDN - cancelable](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable)
-    cancelable: bool,
+    pub cancelable: bool,
 }
 
 impl Default for CustomEventOptions {

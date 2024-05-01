@@ -5,8 +5,10 @@ use std::borrow::Cow;
 
 use dioxus::prelude::*;
 use wasm_bindgen::prelude::*;
+use web_sys::{Document, ShadowRoot};
 
 use crate::rust_component::RustComponent;
+pub use dioxus_web_component_macro::web_component;
 
 mod event;
 pub use self::event::*;
@@ -44,6 +46,32 @@ pub enum InjectedStyle {
     Css(Cow<'static, str>),
     /// Url containing the stylesheet to go in an HTML `<link rel="stylesheet" href="...">`
     Stylesheet(Cow<'static, str>),
+    /// Multiple styles
+    Multiple(Vec<InjectedStyle>),
+}
+
+impl InjectedStyle {
+    fn inject(&self, document: &Document, root: &ShadowRoot) {
+        match self {
+            Self::None => {}
+            Self::Css(css) => {
+                let style_el = document.create_element("style").unwrap_throw();
+                style_el.set_inner_html(css);
+                root.append_child(&style_el).unwrap_throw();
+            }
+            Self::Stylesheet(url) => {
+                let link_el = document.create_element("link").unwrap_throw();
+                link_el.set_attribute("rel", "stylesheet").unwrap_throw();
+                link_el.set_attribute("href", url).unwrap_throw();
+                root.append_child(&link_el).unwrap_throw();
+            }
+            Self::Multiple(styles) => {
+                for style in styles {
+                    style.inject(document, root);
+                }
+            }
+        }
+    }
 }
 
 /// Dioxus web component
@@ -69,8 +97,6 @@ pub fn register_dioxus_web_component<E>(custom_tag: &str)
 where
     E: DioxusWebComponent,
 {
-    // TODO we could validate the custom element name ?
-    // See https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names
     let attributes = E::attributes().iter().map(ToString::to_string).collect();
     let dx_el_builder = E::element;
     let style = E::style();

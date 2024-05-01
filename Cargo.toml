@@ -1,5 +1,10 @@
 [workspace]
-members = ["dioxus-web-component", "examples/counter", "examples/greeting"]
+members = [
+  "dioxus-web-component",
+  "dioxus-web-component-macro",
+  "examples/counter",
+  "examples/greeting",
+]
 resolver = "2"
 
 [workspace.package]
@@ -15,6 +20,11 @@ async-channel = "2.2.1"
 dioxus = "0.5.1"
 wasm-bindgen = "0.2.92"
 web-sys = "0.3.68"
+syn = "2.0.46"
+quote = "1.0.35"
+proc-macro2 = "1.0.74"
+darling = "0.20.0"
+heck = "0.5.0"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
