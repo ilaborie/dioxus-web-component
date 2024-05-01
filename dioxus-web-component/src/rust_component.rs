@@ -3,24 +3,16 @@ use dioxus::web::Config;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlElement, ShadowRoot};
 
-use crate::{create_channel, Context, Message, Sender};
+use crate::{create_channel, Context, InjectedStyle, Message, Sender};
 
 pub(crate) type DxElBuilder = fn() -> dioxus::dioxus_core::Element;
 
 /// The Rust component
 #[wasm_bindgen(skip_typescript)]
 pub struct RustComponent {
-    attributes: Vec<String>,
-    dx_el_builder: DxElBuilder,
-}
-
-impl RustComponent {
-    pub fn new(attributes: Vec<String>, dx_el_builder: DxElBuilder) -> Self {
-        Self {
-            attributes,
-            dx_el_builder,
-        }
-    }
+    pub(super) attributes: Vec<String>,
+    pub(super) dx_el_builder: DxElBuilder,
+    pub(super) style: InjectedStyle,
 }
 
 #[wasm_bindgen]
@@ -36,9 +28,26 @@ impl RustComponent {
         // Dioxus require a `web_sys::Element`, and ShadowRoot is not an Element
         // So create a `<div class="dioxus"></div>` element
         let window = window().unwrap_throw();
-        let doc = window.document().unwrap_throw();
-        let inner = doc.create_element("div").unwrap_throw();
+        let document = window.document().unwrap_throw();
+        let inner = document.create_element("div").unwrap_throw();
         inner.set_class_name("dioxus");
+
+        // Inject style
+        match &self.style {
+            InjectedStyle::None => {}
+            InjectedStyle::Css(css) => {
+                let style_el = document.create_element("style").unwrap_throw();
+                style_el.set_inner_html(css);
+                root.append_child(&style_el).unwrap_throw();
+            }
+            InjectedStyle::Stylesheet(url) => {
+                let link_el = document.create_element("link").unwrap_throw();
+                link_el.set_attribute("rel", "stylesheet").unwrap_throw();
+                link_el.set_attribute("href", url).unwrap_throw();
+                root.append_child(&link_el).unwrap_throw();
+            }
+        }
+
         root.append_child(&inner).unwrap_throw();
 
         RustComponentInstance {
