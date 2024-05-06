@@ -32,22 +32,7 @@ impl RustComponent {
         let inner = document.create_element("div").unwrap_throw();
         inner.set_class_name("dioxus");
 
-        // Inject style
-        match &self.style {
-            InjectedStyle::None => {}
-            InjectedStyle::Css(css) => {
-                let style_el = document.create_element("style").unwrap_throw();
-                style_el.set_inner_html(css);
-                root.append_child(&style_el).unwrap_throw();
-            }
-            InjectedStyle::Stylesheet(url) => {
-                let link_el = document.create_element("link").unwrap_throw();
-                link_el.set_attribute("rel", "stylesheet").unwrap_throw();
-                link_el.set_attribute("href", url).unwrap_throw();
-                root.append_child(&link_el).unwrap_throw();
-            }
-        }
-
+        self.style.inject(&document, root);
         root.append_child(&inner).unwrap_throw();
 
         RustComponentInstance {

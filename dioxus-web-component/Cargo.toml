@@ -12,9 +12,15 @@ categories = ["gui", "wasm", "web-programming"]
 keywords = ["dioxus", "web-component", "wasm"]
 readme = "README.md"
 
+[features]
+default = ["macros"]
+
+macros = ["dep:dioxus-web-component-macro"]
+
 [dependencies]
 async-channel = { workspace = true }
 dioxus = { workspace = true, default-features = true, features = ["web"] }
+dioxus-web-component-macro = { path = "../dioxus-web-component-macro", optional = true }
 wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]

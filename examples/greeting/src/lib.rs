@@ -1,12 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
-use std::borrow::Cow::Borrowed;
-
 use dioxus::prelude::*;
-use dioxus_web_component::{
-    register_dioxus_web_component, Context, DioxusWebComponent, InjectedStyle, Message,
-};
+use dioxus_web_component::web_component;
 use wasm_bindgen::prelude::*;
 
 /// Install (register) the web component
@@ -16,39 +12,12 @@ use wasm_bindgen::prelude::*;
 /// Registering the web-component may fail
 #[wasm_bindgen(start)]
 pub fn register() -> Result<(), JsValue> {
-    register_dioxus_web_component::<GreetingsWebComponent>("plop-greeting");
+    register_greetings();
 
     Ok(())
 }
 
-/// The Dioxus component
-#[component]
-fn Greetings(name: String) -> Element {
+#[web_component(tag = "plop-greeting", css = "./style.css")]
+fn Greetings(#[attribute] name: String) -> Element {
     rsx! { p { "Hello {name}!" } }
-}
-
-struct GreetingsWebComponent;
-
-impl DioxusWebComponent for GreetingsWebComponent {
-    fn style() -> InjectedStyle {
-        let css = include_str!("./style.css");
-        InjectedStyle::Css(Borrowed(css))
-    }
-
-    fn attributes() -> &'static [&'static str] {
-        &["name"]
-    }
-
-    fn element() -> Element {
-        let mut name_signal = use_signal(String::new);
-        let Context { rx, .. } = use_context();
-        let _change_handler = use_coroutine::<(), _, _>(|_| async move {
-            while let Ok(Message::AttributeChanged { new_value, .. }) = rx.recv().await {
-                let value = new_value.unwrap_or_else(|| "World".to_owned());
-                name_signal.set(value);
-            }
-        });
-
-        rsx! { Greetings { name: name_signal } }
-    }
 }
