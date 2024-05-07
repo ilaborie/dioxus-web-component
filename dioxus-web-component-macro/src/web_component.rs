@@ -9,21 +9,19 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::ext::IdentExt;
-use syn::{FnArg, Ident, ItemFn, Pat, PatIdent, PatType, Type};
+use syn::{Expr, FnArg, Ident, ItemFn, Pat, PatIdent, PatType, Type};
 
 use crate::{Attribute, Event};
 
 #[derive(Debug, FromMeta)]
 struct WebComponentReceiver {
     tag: Option<String>,
-    css: Option<String>,        // TODO with include_str!()
-    stylesheet: Option<String>, // TODO use vec
+    style: Option<Expr>,
 }
 
 pub(crate) struct WebComponent {
     tag: String,
-    css: Option<String>,        // TODO with include_str!()
-    stylesheet: Option<String>, // TODO use vec
+    style: Option<Expr>,
     attributes: Vec<Attribute>,
     events: Vec<Event>,
     item_fn: ItemFn,
@@ -32,11 +30,7 @@ pub(crate) struct WebComponent {
 impl WebComponent {
     pub(crate) fn parse(args: TokenStream, mut item_fn: ItemFn) -> Result<Self, Error> {
         let attr_args = NestedMeta::parse_meta_list(args)?;
-        let WebComponentReceiver {
-            tag,
-            css,
-            stylesheet,
-        } = WebComponentReceiver::from_list(&attr_args)?;
+        let WebComponentReceiver { tag, style } = WebComponentReceiver::from_list(&attr_args)?;
 
         let tag = tag.unwrap_or_else(|| {
             let ident = item_fn.sig.ident.unraw();
@@ -58,21 +52,33 @@ impl WebComponent {
             let ident = ident.clone();
             let ty = Type::clone(ty);
 
+            let mut has_attribute = false;
             // Parse argument attributes
             attrs.retain(|attr| {
                 if attr.path().is_ident("event") {
                     let event = Event::parse(attr, ident.clone(), ty.clone());
                     parsed_events.push(event);
+                    has_attribute = true;
                     false
                 } else if attr.path().is_ident("attribute") {
                     let attr = Attribute::parse(attr, ident.clone(), ty.clone());
                     parsed_attributes.push(attr);
+                    has_attribute = true;
                     false
                 } else {
                     true
                 }
             });
-            // TODO what behavior if no attribute?
+
+            if !has_attribute {
+                let ty_str = ty.to_token_stream().to_string();
+                let is_event = ty_str.starts_with("EventHandler <");
+                if is_event {
+                    parsed_events.push(Ok(Event::new(ident, ty)));
+                } else {
+                    parsed_attributes.push(Ok(Attribute::new(ident, ty)));
+                }
+            }
         }
 
         let attributes = parsed_attributes
@@ -82,8 +88,7 @@ impl WebComponent {
 
         let result = Self {
             tag,
-            css,
-            stylesheet,
+            style,
             attributes,
             events,
             item_fn,
@@ -107,6 +112,7 @@ impl WebComponent {
         let fn_name = format_ident!("register_{}", name.to_snake_case());
         let wc_name = self.web_component_name();
         let tag = &self.tag;
+        // TODO Default tag should be kebab-case
         quote! {
             #visibility fn #fn_name() {
                 ::dioxus_web_component::register_dioxus_web_component::<#wc_name>(#tag);
@@ -153,48 +159,10 @@ impl WebComponent {
         }
     }
 
-    pub fn web_component_style(&self) -> TokenStream {
-        let css = if let Some(css_path) = &self.css {
-            quote! {
-                let css = include_str!(#css_path);
-                let css = ::std::borrow::Cow::Borrowed(css);
-                ::dioxus_web_component::InjectedStyle::Css(css)
-            }
-        } else {
-            quote!()
-        };
-
-        let stylesheet = if let Some(stylesheet) = &self.stylesheet {
-            quote! {
-                let url = ::std::borrow::Cow::Borrowed(#stylesheet);
-                ::dioxus_web_component::InjectedStyle::Stylesheet(url)
-            }
-        } else {
-            quote!()
-        };
-
-        match (&self.css, &self.stylesheet) {
-            (None, None) => quote! {
-                ::dioxus_web_component::InjectedStyle::default()
-            },
-            (None, Some(_)) => quote! {
-                #stylesheet
-            },
-            (Some(_), None) => quote! {
-                #css
-            },
-            (Some(_), Some(_)) => quote! {
-                let css = #css;
-                let stylesheet = #stylesheet;
-                ::dioxus_web_component::InjectedStyle::Multiple(vec![stylesheet, css])
-            },
-        }
-    }
-
     pub fn impl_web_component(&self) -> TokenStream {
         let name = &self.item_fn.sig.ident;
         let wc_name = self.web_component_name();
-        let attribute_names = self.attributes.iter().map(|attr| &attr.name);
+        let attribute_names = self.attributes.iter().map(|attr| attr.name());
         let attribute_instances = self.attributes.iter().map(Attribute::new_instance);
         let event_instances = self.events.iter().map(Event::new_instance);
 
@@ -208,13 +176,21 @@ impl WebComponent {
         all_rsx_attributes.extend(self.attributes.iter().map(Attribute::rsx_attribute));
         all_rsx_attributes.extend(self.events.iter().map(|evt| evt.ident.to_token_stream()));
 
-        let style = self.web_component_style();
+        let style = self
+            .style
+            .as_ref()
+            .map(|style| {
+                quote! {
+                        fn style() -> ::dioxus_web_component::InjectedStyle {
+                            #style
+                        }
+                }
+            })
+            .unwrap_or_default();
 
         quote! {
             impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
-                fn style() -> ::dioxus_web_component::InjectedStyle {
-                    #style
-                }
+                #style
 
                 fn attributes() -> &'static [&'static str] {
                     &[
@@ -258,8 +234,7 @@ impl Debug for WebComponent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("WebComponent")
             .field("tag", &self.tag)
-            .field("css", &self.css)
-            .field("stylesheet", &self.stylesheet)
+            .field("style", &self.style.to_token_stream().to_string())
             .field("attributes", &self.attributes)
             .field("events", &self.events)
             .field("item_fn", &self.item_fn.sig.to_token_stream().to_string())

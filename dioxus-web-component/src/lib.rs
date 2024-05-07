@@ -51,6 +51,18 @@ pub enum InjectedStyle {
 }
 
 impl InjectedStyle {
+    /// Build with a static CSS code
+    #[must_use]
+    pub fn css(css: &'static str) -> Self {
+        Self::Css(Cow::Borrowed(css))
+    }
+
+    /// Build with a static path to a stylesheet, e.g. an URL
+    #[must_use]
+    pub fn stylesheet(url: &'static str) -> Self {
+        Self::Stylesheet(Cow::Borrowed(url))
+    }
+
     fn inject(&self, document: &Document, root: &ShadowRoot) {
         match self {
             Self::None => {}
@@ -108,7 +120,7 @@ where
     register_web_component(custom_tag, rust_component);
 }
 
-#[wasm_bindgen(module = "/src/lib.js")]
+#[wasm_bindgen(module = "/src/shim.js")]
 extern "C" {
     #[allow(unsafe_code)]
     fn register_web_component(custom_tag: &str, rust_component: RustComponent);

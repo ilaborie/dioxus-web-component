@@ -2,7 +2,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use dioxus::prelude::*;
-use dioxus_web_component::web_component;
+use dioxus_web_component::{web_component, InjectedStyle};
 use wasm_bindgen::prelude::*;
 
 /// Install (register) the web component
@@ -18,7 +18,7 @@ pub fn register() -> Result<(), JsValue> {
 }
 
 /// The Dioxus component
-#[web_component(tag = "plop-counter", stylesheet = "./style.css")]
+#[web_component(tag = "plop-counter", style = InjectedStyle::stylesheet("./style.css"))]
 fn Counter(#[event] on_count: EventHandler<i32>) -> Element {
     let mut counter = use_signal(|| 0);
 
