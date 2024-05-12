@@ -2,7 +2,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use dioxus::prelude::*;
-use dioxus_web_component::web_component;
+use dioxus_web_component::{web_component, InjectedStyle};
 use wasm_bindgen::prelude::*;
 
 /// Install (register) the web component
@@ -17,7 +17,7 @@ pub fn register() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[web_component(tag = "plop-greeting", css = "./style.css")]
+#[web_component(tag = "plop-greeting", style = InjectedStyle::css(include_str!("./style.css"))  )]
 fn Greetings(#[attribute] name: String) -> Element {
     rsx! { p { "Hello {name}!" } }
 }

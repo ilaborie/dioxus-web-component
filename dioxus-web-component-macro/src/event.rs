@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 
 use darling::{Error, FromMeta};
+use heck::ToKebabCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::ext::IdentExt;
@@ -17,10 +18,10 @@ pub struct EventReceiver {
 
 pub struct Event {
     pub ident: Ident,
-    pub ty: Type,
-    pub web_event_name: String,
-    pub can_bubble: bool,
-    pub cancelable: bool,
+    ty: Type,
+    web_event_name: Option<String>,
+    can_bubble: bool,
+    cancelable: bool,
 }
 
 impl Debug for Event {
@@ -36,6 +37,16 @@ impl Debug for Event {
 }
 
 impl Event {
+    pub(super) fn new(ident: Ident, ty: Type) -> Self {
+        Self {
+            ident,
+            ty,
+            web_event_name: None,
+            can_bubble: true,
+            cancelable: true,
+        }
+    }
+
     pub(super) fn parse(attr: &Attribute, ident: Ident, ty: Type) -> Result<Self, Error> {
         let receiver = if let Meta::List(_) = &attr.meta {
             EventReceiver::from_meta(&attr.meta)?
@@ -43,16 +54,7 @@ impl Event {
             EventReceiver::default()
         };
 
-        let web_event_name = if let Some(name) = receiver.name {
-            name
-        } else {
-            ident
-                .unraw()
-                .to_string()
-                .trim_start_matches("on_")
-                .to_string()
-        };
-
+        let web_event_name = receiver.name;
         let can_bubble = !(receiver.no_bubble.unwrap_or_default());
         let cancelable = !(receiver.no_cancel.unwrap_or_default());
 
@@ -75,20 +77,30 @@ impl Event {
         }
     }
 
+    fn web_event_name(&self) -> String {
+        self.web_event_name.clone().unwrap_or_else(|| {
+            self.ident
+                .unraw()
+                .to_string()
+                .trim_start_matches("on_")
+                .trim_start_matches("on")
+                .to_kebab_case()
+        })
+    }
+
     pub(super) fn new_instance(&self) -> TokenStream {
         let Self {
             ident,
-            web_event_name,
             can_bubble,
             cancelable,
             ..
         } = &self;
 
-        // Events
-        // let on_click = custom_event_handler(event_target, "click", CustomEventOptions::default());
+        let web_event_name = self.web_event_name();
+
         quote! {
             let #ident = ::dioxus_web_component::custom_event_handler(
-                event_target,
+                event_target.clone(),
                 #web_event_name,
                 ::dioxus_web_component::CustomEventOptions {
                     can_bubble: #can_bubble,

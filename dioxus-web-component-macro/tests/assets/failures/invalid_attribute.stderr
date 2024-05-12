@@ -1,0 +1,13 @@
+error: Unknown field: `value`
+ --> tests/assets/failures/invalid_attribute.rs:9:17
+  |
+9 |     #[attribute(value= "name")]
+  |                 ^^^^^
+
+warning: unused import: `dioxus::prelude::*`
+ --> tests/assets/failures/invalid_attribute.rs:1:5
+  |
+1 | use dioxus::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
