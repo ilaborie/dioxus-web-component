@@ -8,7 +8,6 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.0.4"
 edition = "2021"
 authors = ["ilaborie@gmail.com"]
 license = "MIT OR Apache-2.0"
