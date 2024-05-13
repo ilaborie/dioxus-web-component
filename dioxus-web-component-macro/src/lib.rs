@@ -30,9 +30,6 @@ pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
     // TODO checks
     // * invalid tag name
     //   tag: https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names
-    //
-    // * untagged arguments
-    // * (invalid types)
 
     let dioxus_component = wc.dioxus_component();
     let register_fn = wc.register_fn();
