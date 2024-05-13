@@ -157,14 +157,8 @@ impl Attribute {
     pub(super) fn rsx_attribute(&self) -> TokenStream {
         let ident = &self.ident;
 
-        if self.option() {
-            quote! {
-                #ident: #ident().clone(),
-            }
-        } else {
-            quote! {
-                #ident,
-            }
+        quote! {
+            #ident: #ident().clone(),
         }
     }
 }
