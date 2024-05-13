@@ -96,7 +96,8 @@ See [dioxus-web-component-macro] documentation for more details.
 
 ## Usage without macro
 
-The usage without macro is discouraged.
+<details>
+<summary>The usage without macro is discouraged</summary>
 
 You can provide your manual implementation of [`DioxusWebComponent`] and call
 [`register_dioxus_web_component`] to register your web component.
@@ -219,13 +220,14 @@ impl DioxusWebComponent for CounterWebComponent {
 }
 ```
 
+</details>
 
 ## Limitations
 
 * web component properties not (yet) supported
 * only extends `HTMLElement`
 * only work as a replacement of Dioxus `#[component]` annotation (does not work with handmade `Props`)
-* no validation of the
+* no validation of the custom element name
 
 
 ## Contributions
