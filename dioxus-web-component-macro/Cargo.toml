@@ -7,6 +7,7 @@ license = { workspace = true }
 repository = { workspace = true }
 rust-version = { workspace = true }
 
+documentation = "https://docs.rs/dioxus-web-component-macro"
 description = "dioxus-web-component proc macro"
 categories = ["gui", "wasm", "web-programming"]
 keywords = ["dioxus", "web-component", "wasm"]
