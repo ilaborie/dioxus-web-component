@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.1.0...dioxus-web-component-macro-v0.1.1) - 2024-05-13
+
+### Fixed
+- Fix macro attribute generation for [#12](https://github.com/ilaborie/dioxus-web-component/pull/12) ([#13](https://github.com/ilaborie/dioxus-web-component/pull/13))
+
 ## [0.0.4](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.0.3...dioxus-web-component-macro-v0.0.4) - 2024-05-06
 
 ### Added
