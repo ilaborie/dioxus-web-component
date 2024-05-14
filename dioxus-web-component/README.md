@@ -47,7 +47,7 @@ The `#[web_component]` annotation can be configured with:
 
 * `tag` to set the HTML custom element tag name.
   By default it's the kebab case version of the function name.
-  ⚠️ There are some restrictiction to custom element names, see [MDN - Valid custom element names](https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names)
+  ⚠️ There are some restriction to custom element names, see [MDN - Valid custom element names](https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names)
 * `style` to provide the [`InjectedStyle`] to your component.
 
 Parameters of the component could be either an attribute or an event.
@@ -70,7 +70,7 @@ You can customize the event with these attributes:
 * `name` to set the HTML event name.
   By default use the parameter name without the `on` prefix (if any)
 * `no_bubble` to forbib the custom event to bubble
-* `no_cancale` to remove the ability to cancel the custom event
+* `no_cancel` to remove the ability to cancel the custom event
 
 
 This example use all annotations:
