@@ -53,13 +53,13 @@ pub enum InjectedStyle {
 impl InjectedStyle {
     /// Build with a static CSS code
     #[must_use]
-    pub fn css(css: &'static str) -> Self {
+    pub const fn css(css: &'static str) -> Self {
         Self::Css(Cow::Borrowed(css))
     }
 
     /// Build with a static path to a stylesheet, e.g. an URL
     #[must_use]
-    pub fn stylesheet(url: &'static str) -> Self {
+    pub const fn stylesheet(url: &'static str) -> Self {
         Self::Stylesheet(Cow::Borrowed(url))
     }
 
