@@ -1,8 +1,8 @@
 # Dioxus Web Component
 
-This create provide a bridge to expose a [Dioxus] component as a [web-component].
+This crate provides a bridge to expose a [Dioxus] component as a [web component].
 
-This crate support web component attributes, and custom events.
+This crate supports web component attributes and custom events.
 You can also add CSS style to your web component.
 
 Take a look at the examples to see the usage in a full project:
@@ -15,7 +15,7 @@ If you are new to WebAssembly with Rust, take a look at the [Rust WebAssembly bo
 
 Ideally, you only need to replace the Dioxus `#[component]` by `#[web_component]`.
 Then you should register the web component with [wasm-bindgen].
-And to finish, you can create the [npm] package with [wasm-pack].
+To finish, you can create the [npm] package with [wasm-pack].
 
 
 ```rust, ignore
@@ -46,8 +46,7 @@ Then call the function from the JS side.
 The `#[web_component]` annotation can be configured with:
 
 * `tag` to set the HTML custom element tag name.
-  By default it's the kebab case version of the function name.
-  ⚠️ There are some restriction to custom element names, see [MDN - Valid custom element names](https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names)
+  By default, it's the kebab case version of the function name.
 * `style` to provide the [`InjectedStyle`] to your component.
 
 Parameters of the component could be either an attribute or an event.
@@ -61,19 +60,19 @@ Attributes can be customized with the `#[attribute]` annotation with:
 * `initial` to set the default value when the HTML attribute is missing
   By default use the `std::defaultDefault` implementation of the type.
 * `parse` to provide the conversion between the HTML attribute value (a string) to the type value.
-  By default use the `std::str::FromStr` implementation, and fallback to the default value if it's fail.
+  By default use the `std::str::FromStr` implementation, and fall to the default value if it fails.
 
 
-Event are parameters with the Dioxus `EventHandler<...>` type.
+Events are parameters with the Dioxus `EventHandler<...>` type.
 You can customize the event with these attributes:
 
 * `name` to set the HTML event name.
   By default use the parameter name without the `on` prefix (if any)
-* `no_bubble` to forbib the custom event to bubble
+* `no_bubble` to forbid the custom event to bubble
 * `no_cancel` to remove the ability to cancel the custom event
 
 
-This example use all annotations:
+This example uses all annotations:
 
 ```rust, ignore
 use dioxus::prelude::*;
@@ -158,7 +157,7 @@ impl DioxusWebComponent for GreetingsWebComponent {
 }
 ```
 
-And the counter example looks like:
+The counter example looks like this:
 
 ```rust, ignore
 use std::borrow::Cow;
@@ -236,7 +235,7 @@ Contributions are welcome ❤️.
 
 
 [Dioxus]: https://dioxuslabs.com/
-[web-component]: https://developer.mozilla.org/en-US/docs/Web/API/Web_components
+[web component]: https://developer.mozilla.org/en-US/docs/Web/API/Web_components
 [wasm-bindgen]: https://github.com/rustwasm/wasm-bindgen
 [npm]: https://www.npmjs.com/
 [wasm-pack]: https://github.com/rustwasm/wasm-pack

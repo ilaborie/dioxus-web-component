@@ -5,22 +5,23 @@ use std::fmt::Debug;
 
 use darling::ast::NestedMeta;
 use darling::{Error, FromMeta};
-use heck::ToSnakeCase;
+use heck::{ToKebabCase, ToSnakeCase};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::ext::IdentExt;
 use syn::{Expr, FnArg, Ident, ItemFn, Pat, PatIdent, PatType, Type};
 
+use crate::tag::Tag;
 use crate::{Attribute, Event};
 
 #[derive(Debug, FromMeta)]
 struct WebComponentReceiver {
-    tag: Option<String>,
+    tag: Option<Tag>,
     style: Option<Expr>,
 }
 
 pub(crate) struct WebComponent {
-    tag: String,
+    tag: Tag,
     style: Option<Expr>,
     attributes: Vec<Attribute>,
     events: Vec<Event>,
@@ -30,15 +31,27 @@ pub(crate) struct WebComponent {
 impl WebComponent {
     pub(crate) fn parse(args: TokenStream, mut item_fn: ItemFn) -> Result<Self, Error> {
         let attr_args = NestedMeta::parse_meta_list(args)?;
-        let WebComponentReceiver { tag, style } = WebComponentReceiver::from_list(&attr_args)?;
+        let mut errors = Error::accumulator();
 
-        let tag = tag.unwrap_or_else(|| {
-            let ident = item_fn.sig.ident.unraw();
-            ident.to_string()
-        });
+        let (tag, style) = errors
+            .handle(WebComponentReceiver::from_list(&attr_args))
+            .map(|wc| (wc.tag, wc.style))
+            .unwrap_or_default();
 
-        let mut parsed_events = vec![];
-        let mut parsed_attributes = vec![];
+        let tag = if let Some(tag) = tag {
+            tag
+        } else {
+            let tag = item_fn.sig.ident.unraw().to_string().to_kebab_case();
+            errors
+                .handle_in(|| {
+                    tag.parse()
+                        .map_err(|err| Error::custom(err).with_span(&item_fn.sig.ident))
+                })
+                .unwrap_or(Tag(tag))
+        };
+
+        let mut events = vec![];
+        let mut attributes = vec![];
         for arg in &mut item_fn.sig.inputs {
             let FnArg::Typed(arg) = arg else {
                 continue;
@@ -53,17 +66,21 @@ impl WebComponent {
             let ty = Type::clone(ty);
 
             let mut has_attribute = false;
-            // Parse argument attributes
+            // Parse argument attributes (keep attribute that is not handled)
             attrs.retain(|attr| {
                 if attr.path().is_ident("event") {
-                    let event = Event::parse(attr, ident.clone(), ty.clone());
-                    parsed_events.push(event);
                     has_attribute = true;
+                    let event = Event::parse(attr, ident.clone(), ty.clone());
+                    if let Some(event) = errors.handle(event) {
+                        events.push(event);
+                    }
                     false
                 } else if attr.path().is_ident("attribute") {
-                    let attr = Attribute::parse(attr, ident.clone(), ty.clone());
-                    parsed_attributes.push(attr);
                     has_attribute = true;
+                    let attr = Attribute::parse(attr, ident.clone(), ty.clone());
+                    if let Some(attr) = errors.handle(attr) {
+                        attributes.push(attr);
+                    }
                     false
                 } else {
                     true
@@ -74,17 +91,14 @@ impl WebComponent {
                 let ty_str = ty.to_token_stream().to_string();
                 let is_event = ty_str.starts_with("EventHandler <");
                 if is_event {
-                    parsed_events.push(Ok(Event::new(ident, ty)));
+                    events.push(Event::new(ident, ty));
                 } else {
-                    parsed_attributes.push(Ok(Attribute::new(ident, ty)));
+                    attributes.push(Attribute::new(ident, ty));
                 }
             }
         }
 
-        let attributes = parsed_attributes
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()?;
-        let events = parsed_events.into_iter().collect::<Result<Vec<_>, _>>()?;
+        errors.finish()?;
 
         let result = Self {
             tag,
@@ -111,7 +125,7 @@ impl WebComponent {
         let name = self.item_fn.sig.ident.to_string();
         let fn_name = format_ident!("register_{}", name.to_snake_case());
         let wc_name = self.web_component_name();
-        let tag = &self.tag;
+        let tag = &self.tag.0;
         // TODO Default tag should be kebab-case
         quote! {
             #visibility fn #fn_name() {

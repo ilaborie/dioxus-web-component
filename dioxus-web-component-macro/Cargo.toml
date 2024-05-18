@@ -24,8 +24,10 @@ quote = { workspace = true }
 syn = { workspace = true }
 
 [dev-dependencies]
+assert2 = "0.3.14"
 dioxus = { workspace = true, default-features = true, features = ["web"] }
 dioxus-web-component = { path = "../dioxus-web-component" }
+rstest = { version = "0.19.0", default-features = false }
 serde = "1.0.194"
 trybuild = { version = "1.0.93", features = ["diff"] }
 

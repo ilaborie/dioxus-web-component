@@ -1,0 +1,13 @@
+error: a custom element tag should contains an hyphen '-', having "component"
+ --> tests/assets/failures/invalid_tag_missing_hyphen.rs:8:4
+  |
+8 | fn Component(attr: String) -> Element {
+  |    ^^^^^^^^^
+
+warning: unused import: `dioxus::prelude::*`
+ --> tests/assets/failures/invalid_tag_missing_hyphen.rs:1:5
+  |
+1 | use dioxus::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default

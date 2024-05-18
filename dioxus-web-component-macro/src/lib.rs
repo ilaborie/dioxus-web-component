@@ -14,6 +14,8 @@ pub(crate) use self::attribute::Attribute;
 mod event;
 pub(crate) use self::event::Event;
 
+pub(crate) mod tag;
+
 /// Proc macro to create the web component glue
 #[proc_macro_attribute]
 pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -25,11 +27,6 @@ pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
             return TokenStream::from(err.write_errors());
         }
     };
-    // println!("🌀 {wc:#?}");
-
-    // TODO checks
-    // * invalid tag name
-    //   tag: https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names
 
     let dioxus_component = wc.dioxus_component();
     let register_fn = wc.register_fn();

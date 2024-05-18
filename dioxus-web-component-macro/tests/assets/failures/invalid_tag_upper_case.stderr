@@ -1,0 +1,19 @@
+error: a custom element cannot contains an ASCII upper case letter, having "my-AwesomeComponent" containing 'A'
+ --> tests/assets/failures/invalid_tag_upper_case.rs:7:23
+  |
+7 | #[web_component(tag = "my-AwesomeComponent")]
+  |                       ^^^^^^^^^^^^^^^^^^^^^
+
+error: a custom element tag should contains an hyphen '-', having "component"
+ --> tests/assets/failures/invalid_tag_upper_case.rs:8:4
+  |
+8 | fn Component(attr: String) -> Element {
+  |    ^^^^^^^^^
+
+warning: unused import: `dioxus::prelude::*`
+ --> tests/assets/failures/invalid_tag_upper_case.rs:1:5
+  |
+1 | use dioxus::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
