@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-web-component"
-version = "0.1.2"
+version = "0.1.3"
 edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
@@ -21,7 +21,7 @@ macros = ["dep:dioxus-web-component-macro"]
 [dependencies]
 async-channel = { workspace = true }
 dioxus = { workspace = true, default-features = true, features = ["web"] }
-dioxus-web-component-macro = { version = "0.1.2", path = "../dioxus-web-component-macro", optional = true }
+dioxus-web-component-macro = { version = "0.1.3", path = "../dioxus-web-component-macro", optional = true }
 wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]

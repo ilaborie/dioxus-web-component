@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.1.2...dioxus-web-component-v0.1.3) - 2024-05-18
+
+### Added
+- check custom element tag validity ([#26](https://github.com/ilaborie/dioxus-web-component/pull/26))
+- add const to InjectedStyle helper functions ([#25](https://github.com/ilaborie/dioxus-web-component/pull/25))
+
+### Other
+- fix typos
+
 ## [0.1.2](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.1.1...dioxus-web-component-v0.1.2) - 2024-05-13
 
 ### Other
