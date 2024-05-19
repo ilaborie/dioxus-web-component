@@ -19,7 +19,7 @@ pub fn register() -> Result<(), JsValue> {
 
 /// The Dioxus component
 #[web_component(tag = "plop-counter", style = InjectedStyle::stylesheet("./style.css"))]
-fn Counter(#[event] on_count: EventHandler<i32>) -> Element {
+fn Counter(on_count: EventHandler<i32>) -> Element {
     let mut counter = use_signal(|| 0);
 
     rsx! {

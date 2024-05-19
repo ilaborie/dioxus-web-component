@@ -1,11 +1,12 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
-use std::borrow::Cow;
+use std::cell::RefCell;
+use std::rc::Rc;
 
-use dioxus::prelude::*;
+use dioxus::dioxus_core::Element;
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, ShadowRoot};
+use web_sys::EventTarget;
 
 use crate::rust_component::RustComponent;
 pub use dioxus_web_component_macro::web_component;
@@ -13,109 +14,62 @@ pub use dioxus_web_component_macro::web_component;
 mod event;
 pub use self::event::*;
 
-mod rust_component;
+mod style;
+pub use self::style::*;
 
-/// A message send to the dioxus component
-#[non_exhaustive]
-pub enum Message {
-    /// An attribute value changed
-    AttributeChanged {
-        /// The attribute name
-        name: String,
-        /// The new value
-        new_value: Option<String>,
-    },
-}
+mod rust_component;
 
 /// A context provided by the web component
 #[derive(Clone)]
-pub struct Context {
+pub struct Shared {
+    event_target: web_sys::HtmlElement,
+    attributes: Vec<String>,
+    component: InnerComponent,
+}
+
+type InnerComponent = Rc<RefCell<Option<Box<dyn DioxusWebComponent + 'static>>>>;
+
+impl Shared {
     /// The web component event target use to dispatch custom event
-    pub event_target: web_sys::HtmlElement,
-    /// The message receiver
-    pub rx: Receiver<Message>,
-}
-
-/// Provide style to the web component
-#[derive(Debug, Clone, Default)]
-pub enum InjectedStyle {
-    /// No style provided
-    #[default]
-    None,
-    /// Raw CSS content to go in an HTML `<style>`
-    Css(Cow<'static, str>),
-    /// Url containing the stylesheet to go in an HTML `<link rel="stylesheet" href="...">`
-    Stylesheet(Cow<'static, str>),
-    /// Multiple styles
-    Multiple(Vec<InjectedStyle>),
-}
-
-impl InjectedStyle {
-    /// Build with a static CSS code
     #[must_use]
-    pub const fn css(css: &'static str) -> Self {
-        Self::Css(Cow::Borrowed(css))
+    pub fn event_target(&self) -> impl AsRef<EventTarget> + 'static {
+        self.event_target.clone()
     }
 
-    /// Build with a static path to a stylesheet, e.g. an URL
-    #[must_use]
-    pub const fn stylesheet(url: &'static str) -> Self {
-        Self::Stylesheet(Cow::Borrowed(url))
-    }
-
-    fn inject(&self, document: &Document, root: &ShadowRoot) {
-        match self {
-            Self::None => {}
-            Self::Css(css) => {
-                let style_el = document.create_element("style").unwrap_throw();
-                style_el.set_inner_html(css);
-                root.append_child(&style_el).unwrap_throw();
-            }
-            Self::Stylesheet(url) => {
-                let link_el = document.create_element("link").unwrap_throw();
-                link_el.set_attribute("rel", "stylesheet").unwrap_throw();
-                link_el.set_attribute("href", url).unwrap_throw();
-                root.append_child(&link_el).unwrap_throw();
-            }
-            Self::Multiple(styles) => {
-                for style in styles {
-                    style.inject(document, root);
-                }
-            }
+    /// Initialize the component
+    pub fn init_component(&self, mut wc: impl DioxusWebComponent + 'static) {
+        // Initial state
+        for attr in &self.attributes {
+            let initial_value = self.event_target.get_attribute(attr);
+            wc.set_attribute(attr, initial_value);
         }
+        // Update shared component
+        let component = Rc::clone(&self.component);
+        let mut component = component.borrow_mut();
+        *component = Some(Box::new(wc));
     }
 }
 
 /// Dioxus web component
 pub trait DioxusWebComponent {
-    /// Provide observable attributes
-    #[must_use]
-    fn attributes() -> &'static [&'static str] {
-        &[]
-    }
+    /// Set an HTML attribute
+    fn set_attribute(&mut self, attribute: &str, value: Option<String>);
 
-    /// Provide the dioxus element
-    fn element() -> Element;
-
-    /// Provide the CSS style
-    #[must_use]
-    fn style() -> InjectedStyle {
-        InjectedStyle::default()
-    }
+    // TODO get/set properties
 }
 
 /// Register a Dioxus web component
-pub fn register_dioxus_web_component<E>(custom_tag: &str)
-where
-    E: DioxusWebComponent,
-{
-    let attributes = E::attributes().iter().map(ToString::to_string).collect();
-    let dx_el_builder = E::element;
-    let style = E::style();
+// TODO attributes, dx_el_builder, style
+pub fn register_dioxus_web_component(
+    custom_tag: &str,
+    attributes: Vec<String>,
+    style: InjectedStyle,
+    dx_el_builder: fn() -> Element,
+) {
     let rust_component = RustComponent {
         attributes,
-        dx_el_builder,
         style,
+        dx_el_builder,
     };
     register_web_component(custom_tag, rust_component);
 }
@@ -124,13 +78,4 @@ where
 extern "C" {
     #[allow(unsafe_code)]
     fn register_web_component(custom_tag: &str, rust_component: RustComponent);
-}
-
-#[doc(hidden)]
-pub type Sender<T> = async_channel::Sender<T>;
-#[doc(hidden)]
-pub type Receiver<T> = async_channel::Receiver<T>;
-
-pub(crate) fn create_channel<T>() -> (Sender<T>, Receiver<T>) {
-    async_channel::unbounded()
 }

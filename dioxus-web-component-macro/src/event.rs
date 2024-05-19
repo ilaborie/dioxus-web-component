@@ -88,7 +88,7 @@ impl Event {
         })
     }
 
-    pub(super) fn new_instance(&self) -> TokenStream {
+    pub(super) fn new_instance(&self, shared: &Ident) -> TokenStream {
         let Self {
             ident,
             can_bubble,
@@ -100,7 +100,7 @@ impl Event {
 
         quote! {
             let #ident = ::dioxus_web_component::custom_event_handler(
-                event_target.clone(),
+                #shared.event_target(),
                 #web_event_name,
                 ::dioxus_web_component::CustomEventOptions {
                     can_bubble: #can_bubble,

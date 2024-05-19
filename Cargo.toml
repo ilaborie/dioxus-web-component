@@ -15,7 +15,6 @@ repository = "https://github.com/ilaborie/dioxus-web-component"
 rust-version = "1.75.0"
 
 [workspace.dependencies]
-async-channel = "2.2.1"
 dioxus = "0.5.1"
 wasm-bindgen = "0.2.92"
 web-sys = "0.3.68"

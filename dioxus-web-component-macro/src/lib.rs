@@ -31,14 +31,14 @@ pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
     let dioxus_component = wc.dioxus_component();
     let register_fn = wc.register_fn();
     let web_component = wc.web_component();
-    let impl_web_component_watch = wc.impl_web_component_watch();
     let impl_web_component = wc.impl_web_component();
+    let builder_fn = wc.builder_fn();
 
     proc_macro::TokenStream::from(quote! {
         #dioxus_component
         #register_fn
         #web_component
-        #impl_web_component_watch
         #impl_web_component
+        #builder_fn
     })
 }
