@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.1.3...dioxus-web-component-macro-v0.2.0) - 2024-05-20
+
+### Other
+- [**breaking**] remove async-channel dependency ([#27](https://github.com/ilaborie/dioxus-web-component/pull/27))
+
 ## [0.1.3](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.1.2...dioxus-web-component-macro-v0.1.3) - 2024-05-18
 
 ### Added
