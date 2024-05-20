@@ -1,11 +1,8 @@
 use dioxus::prelude::*;
-use dioxus_web_component::{web_component, DioxusWebComponent};
+use dioxus_web_component::web_component;
 
 #[test]
-fn should_work_without_attributes() {
-    let attributes = MyWebComponentWebComponent::attributes();
-    assert_eq!(attributes, &["attr1", "attr-option"]);
-}
+fn just_need_to_compile() {}
 
 #[web_component]
 fn MyWebComponent(
@@ -17,12 +14,6 @@ fn MyWebComponent(
     None
 }
 
-#[test]
-fn should_work_with_marker_attributes() {
-    let attributes = MyWebComponent2WebComponent::attributes();
-    assert_eq!(attributes, &["attr1", "attr-option"]);
-}
-
 #[web_component]
 fn MyWebComponent2(
     #[attribute] attr1: String,
@@ -31,12 +22,6 @@ fn MyWebComponent2(
     #[event] on_snake_evt: EventHandler<bool>,
 ) -> Element {
     None
-}
-
-#[test]
-fn should_work_with_full_attributes() {
-    let attributes = MyWebComponent3WebComponent::attributes();
-    assert_eq!(attributes, &["attr1", "attr-option"]);
 }
 
 #[web_component]

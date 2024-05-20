@@ -124,12 +124,25 @@ impl WebComponent {
         let visibility = &self.item_fn.vis;
         let name = self.item_fn.sig.ident.to_string();
         let fn_name = format_ident!("register_{}", name.to_snake_case());
-        let wc_name = self.web_component_name();
+        let attribute_names = self.attributes.iter().map(|attr| attr.name());
+        let style = self.style.as_ref().map_or_else(
+            || {
+                quote! {
+                        ::dioxus_web_component::InjectedStyle::default()
+                }
+            },
+            quote::ToTokens::to_token_stream,
+        );
         let tag = &self.tag.0;
-        // TODO Default tag should be kebab-case
+        let builder_name = self.builder_name();
+
         quote! {
             #visibility fn #fn_name() {
-                ::dioxus_web_component::register_dioxus_web_component::<#wc_name>(#tag);
+                let attributes = ::std::vec![
+                    #(#attribute_names.to_string()),*
+                ];
+                let style = #style;
+                ::dioxus_web_component::register_dioxus_web_component(#tag, attributes, style, #builder_name);
             }
         }
     }
@@ -143,44 +156,45 @@ impl WebComponent {
         attributes.extend(self.events.iter().map(Event::struct_attribute));
 
         quote! {
-            #[derive(Clone, Copy, PartialEq)]
+            #[derive(Clone, Copy)]
+            #[allow(dead_code)]
             #visibility struct #name {
                 #(#attributes),*
             }
         }
     }
 
-    pub fn impl_web_component_watch(&self) -> TokenStream {
-        let name = self.web_component_name();
+    pub fn impl_web_component(&self) -> TokenStream {
+        let wc_name = self.web_component_name();
         let attribute_patterns = self
             .attributes
             .iter()
             .map(Attribute::pattern_attribute_changed);
 
         quote! {
-            impl #name {
-                async fn watch(mut self, rx: ::dioxus_web_component::Receiver<::dioxus_web_component::Message>) {
-                    while let Ok(msg) = rx.recv().await {
-                        if let ::dioxus_web_component::Message::AttributeChanged { name, new_value } = msg {
-                            match name.as_str() {
-                                #(#attribute_patterns)*
-                                _ => {}
-                            }
-                        }
+            impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
+                fn set_attribute(&mut self, attribute: &str, new_value: Option<String>) {
+                    match attribute {
+                        #(#attribute_patterns)*
+                        _ => {}
                     }
                 }
             }
         }
     }
 
-    pub fn impl_web_component(&self) -> TokenStream {
+    pub fn builder_fn(&self) -> TokenStream {
         let name = &self.item_fn.sig.ident;
+        let builder_name = self.builder_name();
         let wc_name = self.web_component_name();
-        let attribute_names = self.attributes.iter().map(|attr| attr.name());
-        let attribute_instances = self.attributes.iter().map(Attribute::new_instance);
-        let event_instances = self.events.iter().map(Event::new_instance);
+        let instance_name = format_ident!("__{}", wc_name.to_string().to_snake_case());
+        let shared_name = format_ident!("__wc");
 
-        let instance_name = format_ident!("{}", wc_name.to_string().to_snake_case());
+        let attribute_instances = self.attributes.iter().map(Attribute::new_instance);
+        let event_instances = self
+            .events
+            .iter()
+            .map(|event| event.new_instance(&shared_name));
 
         let mut all_idents = vec![];
         all_idents.extend(self.attributes.iter().map(|attr| attr.ident.clone()));
@@ -190,50 +204,25 @@ impl WebComponent {
         all_rsx_attributes.extend(self.attributes.iter().map(Attribute::rsx_attribute));
         all_rsx_attributes.extend(self.events.iter().map(|evt| evt.ident.to_token_stream()));
 
-        let style = self
-            .style
-            .as_ref()
-            .map(|style| {
-                quote! {
-                        fn style() -> ::dioxus_web_component::InjectedStyle {
-                            #style
-                        }
-                }
-            })
-            .unwrap_or_default();
-
         quote! {
-            impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
-                #style
+            #[allow(clippy::default_trait_access)]
+            #[allow(clippy::clone_on_copy)]
+            fn #builder_name() -> ::dioxus::prelude::Element {
+                let #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
 
-                fn attributes() -> &'static [&'static str] {
-                    &[
-                        #(#attribute_names),*
-                    ]
-                }
+                #(#attribute_instances)*
+                #(#event_instances)*
 
-                #[allow(clippy::default_trait_access)]
-                #[allow(clippy::clone_on_copy)]
-                fn element() -> Element {
-                    let ::dioxus_web_component::Context { rx, event_target } = ::dioxus::prelude::use_context();
+                let #instance_name = #wc_name {
+                    #(#all_idents),*
+                };
+                #shared_name.init_component(#instance_name);
 
-                    #(#attribute_instances)*
-                    #(#event_instances)*
-
-                    ::dioxus::prelude::use_context_provider(|| #wc_name {
-                        #(#all_idents),*
-                    });
-                    let #instance_name = ::dioxus::prelude::use_context::<#wc_name>();
-
-                    let _ = ::dioxus::prelude::use_coroutine::<(), _, _>(|_| #instance_name.watch(rx));
-
-                    rsx! {
-                        #name {
-                            #(#all_rsx_attributes)*
-                        }
+                rsx! {
+                    #name {
+                        #(#all_rsx_attributes)*
                     }
                 }
-
             }
         }
     }
@@ -241,6 +230,11 @@ impl WebComponent {
     fn web_component_name(&self) -> Ident {
         let name = &self.item_fn.sig.ident;
         format_ident!("{name}WebComponent")
+    }
+
+    fn builder_name(&self) -> Ident {
+        let name = &self.item_fn.sig.ident;
+        format_ident!("{}_builder", name.to_string().to_snake_case())
     }
 }
 
