@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.2.0...dioxus-web-component-v0.2.1) - 2024-05-23
+
+### Fixed
+- Shared expose the HTML element ([#30](https://github.com/ilaborie/dioxus-web-component/pull/30))
+
 ## [0.2.0](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.1.3...dioxus-web-component-v0.2.0) - 2024-05-20
 
 ### Other
