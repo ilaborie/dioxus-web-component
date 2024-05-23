@@ -98,7 +98,7 @@ impl Attribute {
         self.initial.as_ref().map_or_else(
             || {
                 quote! {
-                    Default::default()
+                    ::std::default::Default::default()
                 }
             },
             ToTokens::to_token_stream,

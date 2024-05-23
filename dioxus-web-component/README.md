@@ -237,9 +237,7 @@ fn register_counter() {
 
     register_dioxus_web_component("plop-counter", attributes, style, counter_builder);
 }
-
 ```
-
 </details>
 
 ## Limitations
@@ -247,7 +245,6 @@ fn register_counter() {
 * web component properties not (yet) supported
 * only extends `HTMLElement`
 * only work as a replacement of Dioxus `#[component]` annotation (does not work with handmade `Props`)
-* no validation of the custom element name
 
 
 ## Contributions

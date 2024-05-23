@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dioxus::dioxus_core::Element;
 use wasm_bindgen::prelude::*;
-use web_sys::EventTarget;
+use web_sys::HtmlElement;
 
 use crate::rust_component::RustComponent;
 pub use dioxus_web_component_macro::web_component;
@@ -32,7 +32,7 @@ type InnerComponent = Rc<RefCell<Option<Box<dyn DioxusWebComponent + 'static>>>>
 impl Shared {
     /// The web component event target use to dispatch custom event
     #[must_use]
-    pub fn event_target(&self) -> impl AsRef<EventTarget> + 'static {
+    pub fn event_target(&self) -> HtmlElement {
         self.event_target.clone()
     }
 
@@ -55,7 +55,7 @@ pub trait DioxusWebComponent {
     /// Set an HTML attribute
     fn set_attribute(&mut self, attribute: &str, value: Option<String>);
 
-    // TODO get/set properties
+    // TODO get/set properties (See issue #18)
 }
 
 /// Register a Dioxus web component
