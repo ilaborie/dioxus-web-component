@@ -148,9 +148,11 @@ impl DioxusWebComponent for GreetingWebComponent {
 
 fn greetings_builder() -> Element {
     let name = use_signal(String::default);
-    let context = use_context::<Shared>();
+    let mut context = use_context::<Shared>();
     let wc = GreetingWebComponent { name };
-    context.init_component(wc);
+    use_effect(move || {
+        context.init_component(wc);
+    });
 
     rsx! {
         Greetings { name }
@@ -224,7 +226,9 @@ fn counter_builder() -> Element {
         CustomEventOptions::default(),
     );
     let wc = CounterWebComponent { on_count };
-    context.init_component(wc);
+    use_effect(move || {
+        context.init_component(wc);
+    });
 
     rsx! {
         Counter{ on_count }
