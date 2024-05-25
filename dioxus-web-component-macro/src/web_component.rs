@@ -173,6 +173,8 @@ impl WebComponent {
 
         quote! {
             impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
+                #[allow(clippy::single_match)]
+                #[allow(clippy::redundant_closure)]
                 fn set_attribute(&mut self, attribute: &str, new_value: Option<String>) {
                     match attribute {
                         #(#attribute_patterns)*
@@ -207,8 +209,9 @@ impl WebComponent {
         quote! {
             #[allow(clippy::default_trait_access)]
             #[allow(clippy::clone_on_copy)]
+            #[allow(clippy::redundant_closure)]
             fn #builder_name() -> ::dioxus::prelude::Element {
-                let #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
+                let mut #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
 
                 #(#attribute_instances)*
                 #(#event_instances)*
@@ -216,7 +219,9 @@ impl WebComponent {
                 let #instance_name = #wc_name {
                     #(#all_idents),*
                 };
-                #shared_name.init_component(#instance_name);
+                ::dioxus::prelude::use_effect(move || {
+                    #shared_name.init_component(#instance_name);
+                });
 
                 rsx! {
                     #name {

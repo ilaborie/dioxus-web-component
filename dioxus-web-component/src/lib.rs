@@ -25,6 +25,7 @@ pub struct Shared {
     event_target: web_sys::HtmlElement,
     attributes: Vec<String>,
     component: InnerComponent,
+    initialized: bool,
 }
 
 type InnerComponent = Rc<RefCell<Option<Box<dyn DioxusWebComponent + 'static>>>>;
@@ -37,16 +38,19 @@ impl Shared {
     }
 
     /// Initialize the component
-    pub fn init_component(&self, mut wc: impl DioxusWebComponent + 'static) {
-        // Initial state
-        for attr in &self.attributes {
-            let initial_value = self.event_target.get_attribute(attr);
-            wc.set_attribute(attr, initial_value);
+    pub fn init_component(&mut self, mut wc: impl DioxusWebComponent + 'static) {
+        if !self.initialized {
+            self.initialized = true;
+            // Initial state
+            for attr in &self.attributes {
+                let initial_value = self.event_target.get_attribute(attr);
+                wc.set_attribute(attr, initial_value);
+            }
+            // Update shared component
+            let component = Rc::clone(&self.component);
+            let mut component = component.borrow_mut();
+            *component = Some(Box::new(wc));
         }
-        // Update shared component
-        let component = Rc::clone(&self.component);
-        let mut component = component.borrow_mut();
-        *component = Some(Box::new(wc));
     }
 }
 
