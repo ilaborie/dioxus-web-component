@@ -62,6 +62,7 @@ impl RustComponentInstance {
             attributes: self.attributes.clone(),
             event_target,
             component: Rc::clone(&self.inner),
+            initialized: false,
         };
 
         let config = Config::new().rootelement(self.inner_elt.clone());
