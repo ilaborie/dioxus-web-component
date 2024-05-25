@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.2.1...dioxus-web-component-v0.2.2) - 2024-05-25
+
+### Fixed
+- fix inifinite loop while setting attribute ([#33](https://github.com/ilaborie/dioxus-web-component/pull/33))
+
 ## [0.2.1](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.2.0...dioxus-web-component-v0.2.1) - 2024-05-23
 
 ### Fixed
