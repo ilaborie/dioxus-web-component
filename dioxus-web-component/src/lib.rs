@@ -5,6 +5,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dioxus::dioxus_core::Element;
+use dioxus::hooks::UnboundedSender;
+use futures_channel::oneshot;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
@@ -19,16 +21,42 @@ pub use self::style::*;
 
 mod rust_component;
 
+pub use futures_util::StreamExt;
+
+/// Message from web component to dioxus
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Message {
+    /// Set attribute
+    SetAttribute {
+        /// Attribute name
+        name: String,
+        /// Attribute value
+        value: Option<String>,
+    },
+    /// Get property
+    Get {
+        /// Property name
+        name: String,
+        /// reply channel
+        tx: oneshot::Sender<JsValue>,
+    },
+    /// Set property
+    Set {
+        /// Property name
+        name: String,
+        /// Property value
+        value: JsValue,
+    },
+}
+
 /// A context provided by the web component
 #[derive(Clone)]
 pub struct Shared {
-    event_target: web_sys::HtmlElement,
     attributes: Vec<String>,
-    component: InnerComponent,
-    initialized: bool,
+    event_target: web_sys::HtmlElement,
+    tx: Rc<RefCell<Option<UnboundedSender<Message>>>>,
 }
-
-type InnerComponent = Rc<RefCell<Option<Box<dyn DioxusWebComponent + 'static>>>>;
 
 impl Shared {
     /// The web component event target use to dispatch custom event
@@ -37,41 +65,103 @@ impl Shared {
         self.event_target.clone()
     }
 
-    /// Initialize the component
-    pub fn init_component(&mut self, mut wc: impl DioxusWebComponent + 'static) {
-        if !self.initialized {
-            self.initialized = true;
-            // Initial state
-            for attr in &self.attributes {
-                let initial_value = self.event_target.get_attribute(attr);
-                wc.set_attribute(attr, initial_value);
-            }
-            // Update shared component
-            let component = Rc::clone(&self.component);
-            let mut component = component.borrow_mut();
-            *component = Some(Box::new(wc));
+    /// Set the receiver
+    pub fn set_tx(&mut self, tx: UnboundedSender<Message>) {
+        // initial state
+        for attr in &self.attributes {
+            let Some(value) = self.event_target.get_attribute(attr) else {
+                continue;
+            };
+            let _ = tx.unbounded_send(Message::SetAttribute {
+                name: attr.to_string(),
+                value: Some(value),
+            });
         }
+        // Keep sender
+        let mut cell = self.tx.borrow_mut();
+        *cell = Some(tx);
     }
 }
 
 /// Dioxus web component
 pub trait DioxusWebComponent {
     /// Set an HTML attribute
-    fn set_attribute(&mut self, attribute: &str, value: Option<String>);
+    fn set_attribute(&mut self, attribute: &str, value: Option<String>) {
+        let _ = value;
+        let _ = attribute;
+    }
 
-    // TODO get/set properties (See issue #18)
+    /// Set a property
+    fn set_property(&mut self, property: &str, value: JsValue) {
+        let _ = value;
+        let _ = property;
+    }
+
+    /// Get a property
+    fn get_property(&mut self, property: &str) -> JsValue {
+        let _ = property;
+        JsValue::undefined()
+    }
+
+    /// Handle a message
+    fn handle_message(&mut self, msg: Message) {
+        match msg {
+            Message::SetAttribute { name, value } => self.set_attribute(&name, value),
+            Message::Get { name, tx } => {
+                let value = self.get_property(&name);
+                let _ = tx.send(value);
+            }
+            Message::Set { name, value } => self.set_property(&name, value),
+        }
+    }
+}
+
+/// Property
+#[wasm_bindgen(skip_typescript)]
+#[derive(Debug, Clone)]
+pub struct Property {
+    /// Name
+    name: String,
+    /// Readonly
+    readonly: bool,
+}
+
+impl Property {
+    /// Create a property
+    pub fn new(name: impl Into<String>, readonly: bool) -> Self {
+        let name = name.into();
+        Self { name, readonly }
+    }
+}
+
+#[wasm_bindgen]
+impl Property {
+    /// Get name
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    /// Is property readonly
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn readonly(&self) -> bool {
+        self.readonly
+    }
 }
 
 /// Register a Dioxus web component
-// TODO attributes, dx_el_builder, style
 pub fn register_dioxus_web_component(
     custom_tag: &str,
     attributes: Vec<String>,
+    properties: Vec<Property>,
     style: InjectedStyle,
     dx_el_builder: fn() -> Element,
 ) {
     let rust_component = RustComponent {
         attributes,
+        properties,
         style,
         dx_el_builder,
     };

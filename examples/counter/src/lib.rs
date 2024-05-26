@@ -19,10 +19,16 @@ pub fn register() -> Result<(), JsValue> {
 
 /// The Dioxus component
 #[web_component(tag = "plop-counter", style = InjectedStyle::stylesheet("./style.css"))]
-fn Counter(on_count: EventHandler<i32>) -> Element {
+fn Counter(
+    // The label is only available with a property
+    #[property] label: String,
+    // This component can trigger a custom 'count' event
+    on_count: EventHandler<i32>,
+) -> Element {
     let mut counter = use_signal(|| 0);
 
     rsx! {
+        span { "{label}" }
         button {
             onclick: move |_| {
                 counter += 1;

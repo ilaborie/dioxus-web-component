@@ -18,6 +18,9 @@ pub fn register() -> Result<(), JsValue> {
 }
 
 #[web_component(tag = "plop-greeting", style = InjectedStyle::css(include_str!("./style.css"))  )]
-fn Greetings(name: String) -> Element {
+fn Greetings(
+    // The name can be set as an attribute of the plop-greeting HTML element
+    name: String,
+) -> Element {
     rsx! { p { "Hello {name}!" } }
 }

@@ -1,12 +1,14 @@
-use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::rc::Rc;
 
+use dioxus::hooks::UnboundedSender;
 use dioxus::prelude::LaunchBuilder;
 use dioxus::web::Config;
+use futures_channel::oneshot;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlElement, ShadowRoot};
 
-use crate::{InjectedStyle, InnerComponent, Shared};
+use crate::{InjectedStyle, Message, Property, Shared};
 
 pub(crate) type DxElBuilder = fn() -> dioxus::dioxus_core::Element;
 
@@ -14,6 +16,7 @@ pub(crate) type DxElBuilder = fn() -> dioxus::dioxus_core::Element;
 #[wasm_bindgen(skip_typescript)]
 pub struct RustComponent {
     pub(crate) attributes: Vec<String>,
+    pub(crate) properties: Vec<Property>,
     pub(crate) style: InjectedStyle,
     pub(crate) dx_el_builder: DxElBuilder,
 }
@@ -23,6 +26,11 @@ impl RustComponent {
     #[wasm_bindgen(getter)]
     pub fn attributes(&self) -> Vec<String> {
         self.attributes.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn properties(&self) -> Vec<Property> {
+        self.properties.clone()
     }
 
     #[wasm_bindgen(js_name = "newInstance")]
@@ -42,7 +50,7 @@ impl RustComponent {
             attributes: self.attributes(),
             inner_elt,
             dx_el_builder: self.dx_el_builder,
-            inner: InnerComponent::default(),
+            tx: Rc::default(),
         }
     }
 }
@@ -52,17 +60,16 @@ pub struct RustComponentInstance {
     attributes: Vec<String>,
     inner_elt: web_sys::Element,
     dx_el_builder: DxElBuilder,
-    inner: InnerComponent,
+    tx: Rc<RefCell<Option<UnboundedSender<Message>>>>,
 }
 
 #[wasm_bindgen]
 impl RustComponentInstance {
-    pub fn connect(&mut self, event_target: HtmlElement) {
+    pub fn connect(&mut self, event_target: &HtmlElement) {
         let ctx = Shared {
             attributes: self.attributes.clone(),
-            event_target,
-            component: Rc::clone(&self.inner),
-            initialized: false,
+            event_target: event_target.clone(),
+            tx: Rc::clone(&self.tx),
         };
 
         let config = Config::new().rootelement(self.inner_elt.clone());
@@ -72,28 +79,43 @@ impl RustComponentInstance {
             .launch(self.dx_el_builder);
     }
 
+    fn send(&mut self, message: Message) {
+        let tx = self.tx.borrow_mut();
+        let Some(tx) = tx.as_ref() else {
+            return;
+        };
+        let _ = tx.unbounded_send(message);
+    }
+
     #[wasm_bindgen(js_name = "attributeChanged")]
     #[allow(clippy::needless_pass_by_value)]
     pub fn attribute_changed(
-        &self,
+        &mut self,
         name: String,
         old_value: Option<String>,
         new_value: Option<String>,
     ) {
-        let mut inner = Rc::clone(&self.inner);
-        let inner = inner.borrow_mut();
-        let mut boxed = inner.as_ref().borrow_mut();
-        let Some(component) = boxed.as_mut() else {
-            return;
-        };
-
         if old_value != new_value {
-            component.set_attribute(&name, new_value);
+            self.send(Message::SetAttribute {
+                name,
+                value: new_value,
+            });
         }
     }
 
+    #[wasm_bindgen(js_name = "getProperty")]
+    pub async fn get_property(&mut self, name: String) -> JsValue {
+        let (tx, rx) = oneshot::channel();
+        self.send(Message::Get { name, tx });
+        rx.await.unwrap_or(JsValue::undefined())
+    }
+
+    #[wasm_bindgen(js_name = "setProperty")]
+    pub fn set_property(&mut self, name: String, value: JsValue) {
+        self.send(Message::Set { name, value });
+    }
+
     pub fn disconnect(&mut self) {
-        let mut inner = Rc::clone(&self.inner);
-        inner.borrow_mut().take();
+        self.tx.take();
     }
 }
