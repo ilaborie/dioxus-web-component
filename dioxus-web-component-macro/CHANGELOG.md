@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.2.2...dioxus-web-component-macro-v0.3.0) - 2024-05-31
+
+### Added
+- [**breaking**] Javascript property support ([#36](https://github.com/ilaborie/dioxus-web-component/pull/36))
+
 ## [0.2.2](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.2.1...dioxus-web-component-macro-v0.2.2) - 2024-05-25
 
 ### Fixed
