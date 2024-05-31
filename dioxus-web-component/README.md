@@ -49,7 +49,13 @@ The `#[web_component]` annotation can be configured with:
   By default, it's the kebab case version of the function name.
 * `style` to provide the [`InjectedStyle`] to your component.
 
-Parameters of the component could be either an attribute or an event.
+Parameters of the component could be:
+
+* an __attribute__ if you want to pass the parameter as an HTML attribute,
+* a __property__ if you only want to read/write the parameter as a property of the Javascript `HTMLElement`,
+* or an __event__ if the a parameter is a Dioxus `EventHandler`.
+
+#### Attributes
 
 Attributes can be customized with the `#[attribute]` annotation with:
 
@@ -62,6 +68,31 @@ Attributes can be customized with the `#[attribute]` annotation with:
 * `parse` to provide the conversion between the HTML attribute value (a string) to the type value.
   By default use the `std::str::FromStr` implementation, and fall to the default value if it fails.
 
+
+#### Property
+
+To declare a property, you need to use the `#[property]` annotation.
+
+We use [wasm-bindgen] to convert the Rust side value to a Javascript value.
+
+⚠️ IMPORTANT: The getter return a Javascript `Promise`.
+
+You can customize the property with these attributes:
+
+* `name` to set the Javascript name of the property.
+  By default, it's the kebab-case of the parameter name.
+* `readonly` to only generate the custom getter
+* `initial` to set the default value when the HTML attribute is missing
+  By default use the `std::defaultDefault` implementation of the type.
+* `try_from_js` to provide the conversion from a `JsValue` to the parameter type.
+  By default use the `std::convert::TryInto` implementation.
+  The error case is ignored (does not set the value)
+* `try_into_js` to provide the conversion from the parameter type to a `JsValue`.
+  By default use the `std::convert::TryInto` implementation.
+  Return `undefined` in case of error
+
+
+#### Events
 
 Events are parameters with the Dioxus `EventHandler<...>` type.
 You can customize the event with these attributes:
@@ -84,16 +115,38 @@ fn MyWebComponent(
     attr1: String,
     #[attribute(name = "attr-option", option = true, initial = None, parse = |value| Some(value.to_string()))]
     attr_option: Option<String>,
+    // Readonly property
+    #[property(readonly)]
+    prop: Option<String>,
+    // Property with custom conversion
+    #[property(
+        initial = MyProp(true),
+        try_into_js = |prop| {
+            let js_value = if prop.0 {
+                JsValue::TRUE
+            } else {
+                JsValue::FALSE
+            };
+            Ok::<_, Infallible>(js_value)
+        },
+        try_from_js= |value| Ok::<_, Infallible>(MyProp(value.is_truthy())),
+    )]
+    prop2: MyProp,
     #[event(name = "event", no_bubble = false, no_cancel = false)] event: EventHandler<i64>,
 ) -> Element {
     todo!()
 }
 
+#[derive(Clone, PartialEq)]
+struct MyProp(bool);
 ```
 
 See [dioxus-web-component-macro] documentation for more details.
 
 ## Usage without macro
+
+Currently, the idea is to avoid breaking changes when you use the macros,
+but you should expect to have some in the API.
 
 <details>
 <summary>The usage without macro is discouraged</summary>
@@ -109,7 +162,7 @@ For example, the greeting example could be written with
 ```rust, ignore,
 use dioxus::prelude::*;
 use dioxus_web_component::{
-    register_dioxus_web_component, DioxusWebComponent, InjectedStyle, Shared,
+    register_dioxus_web_component, DioxusWebComponent, InjectedStyle, Message, Property, Shared,
 };
 use wasm_bindgen::prelude::*;
 
@@ -121,50 +174,92 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(start)]
 pub fn register() -> Result<(), JsValue> {
     register_greetings();
-
     Ok(())
 }
 
-// #[web_component(tag = "plop-greeting", style = InjectedStyle::css(include_str!("./style.css"))  )]
 #[component]
 fn Greetings(name: String) -> Element {
     rsx! { p { "Hello {name}!" } }
 }
 
+
+fn register_greetings() {
+    let properties = vec![Property::new("name", false)];
+    let style = InjectedStyle::css(include_str!("./style.css"));
+    register_dioxus_web_component(
+        "plop-greeting",
+        vec!["name".to_string()],
+        properties,
+        style,
+        greetings_builder,
+    );
+}
+
 #[derive(Clone, Copy)]
-struct GreetingWebComponent {
+struct GreetingsWebComponent {
     name: Signal<String>,
 }
 
-impl DioxusWebComponent for GreetingWebComponent {
+impl DioxusWebComponent for GreetingsWebComponent {
     fn set_attribute(&mut self, attribute: &str, value: Option<String>) {
-        if attribute == "name" {
-            let value = value.unwrap_or_default();
+        match attribute {
+            "name" => {
+                let new_value = value.and_then(|attr| attr.parse().ok()).unwrap_or_default();
+                self.name.set(new_value);
+            }
+            _ => {
+                // nop
+            }
+        }
+    }
 
-            self.name.set(value);
+    fn set_property(&mut self, property: &str, value: JsValue) {
+        match property {
+            // we allow to set the name as a property
+            "name" => {
+                if let Ok(new_value) = Ok(value).and_then(|value| value.try_into()) {
+                    self.name.set(new_value);
+                }
+            }
+            _ => {
+                // nop
+            }
+        }
+    }
+
+    fn get_property(&mut self, property: &str) -> JsValue {
+        match property {
+            // we allow to get the name as a property
+            "name" => Ok(self.name.read().clone())
+                .and_then(|value| value.try_into())
+                .unwrap_or(::wasm_bindgen::JsValue::NULL),
+            _ => JsValue::undefined(),
         }
     }
 }
 
 fn greetings_builder() -> Element {
-    let name = use_signal(String::default);
-    let mut context = use_context::<Shared>();
-    let wc = GreetingWebComponent { name };
+    let mut wc = use_context::<Shared>();
+    let name = use_signal(String::new);
+    let mut greetings = GreetingsWebComponent { name };
+    let corountine = use_coroutine::<Message, _, _>(move |mut rx| async move {
+        use dioxus_web_component::StreamExt;
+        while let Some(msg) = rx.next().await {
+            greetings.handle_message(msg);
+        }
+    });
+
     use_effect(move || {
-        context.init_component(wc);
+        wc.set_tx(corountine.tx());
     });
 
     rsx! {
-        Greetings { name }
+        Greetings {
+            name
+        }
     }
 }
 
-fn register_greetings() {
-    let attributes = vec!["name".to_string()];
-    let style = InjectedStyle::css(include_str!("./style.css"));
-
-    register_dioxus_web_component("plop-greeting", attributes, style, greetings_builder);
-}
 ```
 
 The counter example looks like this:
@@ -172,9 +267,9 @@ The counter example looks like this:
 ```rust, ignore
 use dioxus::prelude::*;
 use dioxus_web_component::{
-    custom_event_handler, register_dioxus_web_component, CustomEventOptions,
-    DioxusWebComponent, InjectedStyle, Shared,
+    custom_event_handler, register_dioxus_web_component, CustomEventOptions, DioxusWebComponent,
 };
+use dioxus_web_component::{InjectedStyle, Message, Property, Shared};
 use wasm_bindgen::prelude::*;
 
 /// Install (register) the web component
@@ -190,12 +285,12 @@ pub fn register() -> Result<(), JsValue> {
 }
 
 /// The Dioxus component
-// #[web_component(tag = "plop-counter", style = InjectedStyle::stylesheet("./style.css"))]
 #[component]
-fn Counter(on_count: EventHandler<i32>) -> Element {
+fn Counter(label: String, on_count: EventHandler<i32>) -> Element {
     let mut counter = use_signal(|| 0);
 
     rsx! {
+        span { "{label}" }
         button {
             onclick: move |_| {
                 counter += 1;
@@ -207,46 +302,75 @@ fn Counter(on_count: EventHandler<i32>) -> Element {
     }
 }
 
+fn register_counter() {
+    let properties = vec![Property::new("label", false)];
+    let style = InjectedStyle::stylesheet("./style.css");
+    register_dioxus_web_component("plop-counter", vec![], properties, style, counter_builder);
+}
+
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 struct CounterWebComponent {
+    label: Signal<String>,
     on_count: EventHandler<i32>,
 }
 
 impl DioxusWebComponent for CounterWebComponent {
-    fn set_attribute(&mut self, _attribute: &str, _value: Option<String>) {
-        // nop
+    #[allow(clippy::single_match_else)]
+    fn set_property(&mut self, property: &str, value: JsValue) {
+        match property {
+            "label" => {
+                let new_value = String::(value).unwrap_throw();
+                self.label.set(new_value);
+            }
+            _ => {
+                // nop
+            }
+        }
+    }
+
+    #[allow(clippy::single_match_else)]
+    fn get_property(&mut self, property: &str) -> JsValue {
+        match property {
+            "label" => {
+                let value = self.label.read().clone();
+                value.into()
+            }
+            _ => JsValue::undefined(),
+        }
     }
 }
 
 fn counter_builder() -> Element {
-    let mut context = use_context::<Shared>();
-    let on_count = custom_event_handler(
-        context.event_target(),
-        "count",
-        CustomEventOptions::default(),
-    );
-    let wc = CounterWebComponent { on_count };
+    let mut wc = use_context::<Shared>();
+    let label = use_signal(String::new);
+    let on_count = custom_event_handler(wc.event_target(), "count", CustomEventOptions::default());
+
+    let mut counter = CounterWebComponent { label, on_count };
+    let corountine = use_coroutine::<Message, _, _>(move |mut rx| async move {
+        use dioxus_web_component::StreamExt;
+        while let Some(msg) = rx.next().await {
+            counter.handle_message(msg);
+        }
+    });
+
     use_effect(move || {
-        context.init_component(wc);
+        wc.set_tx(corountine.tx());
     });
 
     rsx! {
-        Counter{ on_count }
+        Counter {
+            label,
+            on_count
+        }
     }
 }
-
-fn register_counter() {
-    let attributes = vec![];
-    let style = InjectedStyle::stylesheet("./style.css");
-
-    register_dioxus_web_component("plop-counter", attributes, style, counter_builder);
-}
 ```
+
 </details>
 
 ## Limitations
 
-* web component properties not (yet) supported
 * only extends `HTMLElement`
 * only work as a replacement of Dioxus `#[component]` annotation (does not work with handmade `Props`)
 

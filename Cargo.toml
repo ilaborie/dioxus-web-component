@@ -23,6 +23,7 @@ quote = "1.0.35"
 proc-macro2 = "1.0.74"
 darling = "0.20.0"
 heck = "0.5.0"
+futures-channel = "0.3.30"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

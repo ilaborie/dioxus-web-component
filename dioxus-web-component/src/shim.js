@@ -9,7 +9,27 @@ export function register_web_component(custom_tag, rust_component) {
       constructor() {
         super();
         this.attachShadow({ mode: "open" });
-        this.instance = rust_component.newInstance(this.shadowRoot);
+        const instance = rust_component.newInstance(this.shadowRoot);
+        for (let prop of rust_component.properties) {
+          const {name, readonly} = prop;
+          if (readonly) {
+            Object.defineProperty(this, name, {
+              get() {
+                return instance.getProperty(name);
+              }
+            });
+          } else {
+            Object.defineProperty(this, name, {
+              get() {
+                return instance.getProperty(name);
+              },
+              set(value) {
+                instance.setProperty(name, value);
+              }
+            });
+          }
+        }
+        this.instance = instance;
       }
 
       attributeChangedCallback(name, oldValue, newValue) {

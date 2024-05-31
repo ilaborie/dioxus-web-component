@@ -11,6 +11,9 @@ pub(crate) use self::web_component::WebComponent;
 mod attribute;
 pub(crate) use self::attribute::Attribute;
 
+mod properties;
+pub(crate) use self::properties::Property;
+
 mod event;
 pub(crate) use self::event::Event;
 
@@ -31,7 +34,7 @@ pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
     let dioxus_component = wc.dioxus_component();
     let register_fn = wc.register_fn();
     let web_component = wc.web_component();
-    let impl_web_component = wc.impl_web_component();
+    let impl_web_component = wc.impl_dioxus_web_component();
     let builder_fn = wc.builder_fn();
 
     proc_macro::TokenStream::from(quote! {
