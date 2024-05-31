@@ -170,6 +170,10 @@ impl WebComponent {
         attributes.extend(self.properties.iter().map(Property::struct_attribute));
         attributes.extend(self.events.iter().map(Event::struct_attribute));
 
+        // Remove duplicate to allow attribute+property
+        attributes.sort_by_key(ToString::to_string);
+        attributes.dedup_by_key(|t| t.to_string());
+
         quote! {
             #[derive(Clone, Copy)]
             #[allow(dead_code)]
@@ -233,22 +237,36 @@ impl WebComponent {
         let shared_name = format_ident!("__wc");
         let coroutine_name = format_ident!("__coroutine");
 
-        let attribute_instances = self.attributes.iter().map(Attribute::new_instance);
-        let property_instances = self.properties.iter().map(Property::new_instance);
-        let event_instances = self
-            .events
-            .iter()
-            .map(|event| event.new_instance(&shared_name));
+        let mut instances = vec![];
+        instances.extend(self.attributes.iter().map(Attribute::new_instance));
+        instances.extend(self.properties.iter().map(Property::new_instance));
+        instances.extend(
+            self.events
+                .iter()
+                .map(|event| event.new_instance(&shared_name)),
+        );
+
+        // Remove duplicate to allow attribute+property
+        instances.sort_by_key(ToString::to_string);
+        instances.dedup_by_key(|t| t.to_string());
 
         let mut all_idents = vec![];
         all_idents.extend(self.attributes.iter().map(|attr| attr.ident.clone()));
         all_idents.extend(self.properties.iter().map(|attr| attr.ident.clone()));
         all_idents.extend(self.events.iter().map(|evt| evt.ident.clone()));
 
+        // Remove duplicate to allow attribute+property
+        all_idents.sort_by_key(ToString::to_string);
+        all_idents.dedup_by_key(|t| t.to_string());
+
         let mut all_rsx_attributes = vec![];
         all_rsx_attributes.extend(self.attributes.iter().map(Attribute::rsx_attribute));
         all_rsx_attributes.extend(self.properties.iter().map(Property::rsx_attribute));
         all_rsx_attributes.extend(self.events.iter().map(|evt| evt.ident.to_token_stream()));
+
+        // Remove duplicate to allow attribute+property
+        all_rsx_attributes.sort_by_key(ToString::to_string);
+        all_rsx_attributes.dedup_by_key(|t| t.to_string());
 
         quote! {
             #[allow(clippy::default_trait_access)]
@@ -257,9 +275,7 @@ impl WebComponent {
             fn #builder_name() -> ::dioxus::prelude::Element {
                 let mut #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
 
-                #(#attribute_instances)*
-                #(#property_instances)*
-                #(#event_instances)*
+                #(#instances)*
 
                 let mut #instance_name = #wc_name {
                     #(#all_idents),*

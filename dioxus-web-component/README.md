@@ -55,6 +55,8 @@ Parameters of the component could be:
 * a __property__ if you only want to read/write the parameter as a property of the Javascript `HTMLElement`,
 * or an __event__ if the a parameter is a Dioxus `EventHandler`.
 
+💡TIP: You can be an attribute AND an property if you use the two annotations.
+
 #### Attributes
 
 Attributes can be customized with the `#[attribute]` annotation with:
