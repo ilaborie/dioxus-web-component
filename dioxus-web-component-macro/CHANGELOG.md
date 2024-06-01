@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.3.0...dioxus-web-component-macro-v0.3.1) - 2024-06-01
+
+### Added
+- Allow attribute + property ([#38](https://github.com/ilaborie/dioxus-web-component/pull/38))
+
 ## [0.3.0](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.2.2...dioxus-web-component-macro-v0.3.0) - 2024-05-31
 
 ### Added
