@@ -1,6 +1,5 @@
 #![allow(clippy::min_ident_chars)]
 
-use core::panic;
 use std::fmt::Debug;
 
 use darling::ast::NestedMeta;
@@ -9,10 +8,10 @@ use heck::{ToKebabCase, ToSnakeCase};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::ext::IdentExt;
-use syn::{Expr, FnArg, Ident, ItemFn, Pat, PatIdent, PatType, Type};
+use syn::{Expr, Ident, ItemFn};
 
 use crate::tag::Tag;
-use crate::{Attribute, Event, Property};
+use crate::{Attribute, Parameter, Property};
 
 #[derive(Debug, FromMeta)]
 struct WebComponentReceiver {
@@ -23,9 +22,7 @@ struct WebComponentReceiver {
 pub(crate) struct WebComponent {
     tag: Tag,
     style: Option<Expr>,
-    attributes: Vec<Attribute>,
-    properties: Vec<Property>,
-    events: Vec<Event>,
+    parameters: Vec<Parameter>,
     item_fn: ItemFn,
 }
 
@@ -51,73 +48,31 @@ impl WebComponent {
                 .unwrap_or(Tag(tag))
         };
 
-        let mut attributes = vec![];
-        let mut properties = vec![];
-        let mut events = vec![];
-        for arg in &mut item_fn.sig.inputs {
-            let FnArg::Typed(arg) = arg else {
-                continue;
-            };
-
-            let PatType { attrs, pat, ty, .. } = arg;
-            let Pat::Ident(PatIdent { ident, .. }) = pat.as_ref() else {
-                panic!("Expected an ident, got {pat:#?}");
-            };
-
-            let ident = ident.clone();
-            let ty = Type::clone(ty);
-
-            let mut has_attribute = false;
-            // Parse argument attributes (keep attribute that is not handled)
-            attrs.retain(|attr| {
-                if attr.path().is_ident("event") {
-                    has_attribute = true;
-                    let event = Event::parse(attr, ident.clone(), ty.clone());
-                    if let Some(event) = errors.handle(event) {
-                        events.push(event);
-                    }
-                    false
-                } else if attr.path().is_ident("property") {
-                    has_attribute = true;
-                    let prop = Property::parse(attr, ident.clone(), ty.clone());
-                    if let Some(prop) = errors.handle(prop) {
-                        properties.push(prop);
-                    }
-                    false
-                } else if attr.path().is_ident("attribute") {
-                    has_attribute = true;
-                    let attr = Attribute::parse(attr, ident.clone(), ty.clone());
-                    if let Some(attr) = errors.handle(attr) {
-                        attributes.push(attr);
-                    }
-                    false
-                } else {
-                    true
-                }
-            });
-
-            if !has_attribute {
-                let ty_str = ty.to_token_stream().to_string();
-                let is_event = ty_str.starts_with("EventHandler <");
-                if is_event {
-                    events.push(Event::new(ident, ty));
-                } else {
-                    attributes.push(Attribute::new(ident, ty));
-                }
-            }
-        }
+        let parameters = Parameter::parse(&mut errors, &mut item_fn.sig.inputs);
 
         errors.finish()?;
 
         let result = Self {
             tag,
             style,
-            attributes,
-            properties,
-            events,
+            parameters,
             item_fn,
         };
         Ok(result)
+    }
+
+    fn attributes(&self) -> impl Iterator<Item = &Attribute> {
+        self.parameters.iter().filter_map(|it| match it {
+            Parameter::Attribute(attr, _) => Some(attr),
+            Parameter::Property(_) | Parameter::Event(_) => None,
+        })
+    }
+
+    fn properties(&self) -> impl Iterator<Item = &Property> {
+        self.parameters.iter().filter_map(|it| match it {
+            Parameter::Property(prop) | Parameter::Attribute(_, Some(prop)) => Some(prop),
+            Parameter::Attribute(_, None) | Parameter::Event(_) => None,
+        })
     }
 }
 
@@ -134,8 +89,8 @@ impl WebComponent {
         let visibility = &self.item_fn.vis;
         let name = self.item_fn.sig.ident.to_string();
         let fn_name = format_ident!("register_{}", name.to_snake_case());
-        let attribute_names = self.attributes.iter().map(|attr| attr.name());
-        let props = self.properties.iter().map(Property::new_property);
+        let attribute_names = self.attributes().map(|attr| attr.name());
+        let props = self.properties().map(Property::new_property);
         let style = self.style.as_ref().map_or_else(
             || {
                 quote! {
@@ -165,14 +120,7 @@ impl WebComponent {
         let visibility = &self.item_fn.vis;
         let name = self.web_component_name();
 
-        let mut attributes = vec![];
-        attributes.extend(self.attributes.iter().map(Attribute::struct_attribute));
-        attributes.extend(self.properties.iter().map(Property::struct_attribute));
-        attributes.extend(self.events.iter().map(Event::struct_attribute));
-
-        // Remove duplicate to allow attribute+property
-        attributes.sort_by_key(ToString::to_string);
-        attributes.dedup_by_key(|t| t.to_string());
+        let attributes = self.parameters.iter().map(Parameter::struct_attribute);
 
         quote! {
             #[derive(Clone, Copy)]
@@ -185,17 +133,13 @@ impl WebComponent {
 
     pub fn impl_dioxus_web_component(&self) -> TokenStream {
         let wc_name = self.web_component_name();
-        let attribute_patterns = self
-            .attributes
-            .iter()
-            .map(Attribute::pattern_attribute_changed);
+        let attribute_patterns = self.attributes().map(Attribute::pattern_attribute_changed);
 
         let property_set = self
-            .properties
-            .iter()
+            .properties()
             .filter(|prop| !prop.readonly())
             .map(Property::pattern_set_property);
-        let property_get = self.properties.iter().map(Property::pattern_get_property);
+        let property_get = self.properties().map(Property::pattern_get_property);
 
         quote! {
             impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
@@ -237,36 +181,14 @@ impl WebComponent {
         let shared_name = format_ident!("__wc");
         let coroutine_name = format_ident!("__coroutine");
 
-        let mut instances = vec![];
-        instances.extend(self.attributes.iter().map(Attribute::new_instance));
-        instances.extend(self.properties.iter().map(Property::new_instance));
-        instances.extend(
-            self.events
-                .iter()
-                .map(|event| event.new_instance(&shared_name)),
-        );
+        let instances = self
+            .parameters
+            .iter()
+            .map(|param| param.new_instance(&shared_name));
 
-        // Remove duplicate to allow attribute+property
-        instances.sort_by_key(ToString::to_string);
-        instances.dedup_by_key(|t| t.to_string());
+        let all_idents = self.parameters.iter().map(Parameter::ident);
 
-        let mut all_idents = vec![];
-        all_idents.extend(self.attributes.iter().map(|attr| attr.ident.clone()));
-        all_idents.extend(self.properties.iter().map(|attr| attr.ident.clone()));
-        all_idents.extend(self.events.iter().map(|evt| evt.ident.clone()));
-
-        // Remove duplicate to allow attribute+property
-        all_idents.sort_by_key(ToString::to_string);
-        all_idents.dedup_by_key(|t| t.to_string());
-
-        let mut all_rsx_attributes = vec![];
-        all_rsx_attributes.extend(self.attributes.iter().map(Attribute::rsx_attribute));
-        all_rsx_attributes.extend(self.properties.iter().map(Property::rsx_attribute));
-        all_rsx_attributes.extend(self.events.iter().map(|evt| evt.ident.to_token_stream()));
-
-        // Remove duplicate to allow attribute+property
-        all_rsx_attributes.sort_by_key(ToString::to_string);
-        all_rsx_attributes.dedup_by_key(|t| t.to_string());
+        let all_rsx_attributes = self.parameters.iter().map(Parameter::rsx_attribute);
 
         quote! {
             #[allow(clippy::default_trait_access)]
@@ -317,9 +239,7 @@ impl Debug for WebComponent {
         f.debug_struct("WebComponent")
             .field("tag", &self.tag)
             .field("style", &self.style.to_token_stream().to_string())
-            .field("attributes", &self.attributes)
-            .field("properties", &self.properties)
-            .field("events", &self.events)
+            .field("parameters", &self.parameters)
             .field("item_fn", &self.item_fn.sig.to_token_stream().to_string())
             .finish()
     }

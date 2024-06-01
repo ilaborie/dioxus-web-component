@@ -2,6 +2,9 @@
 
 This example provide a `plop-counter` web component that 
 emit a `count` event when the counter is updated.
+(open your browser console to see event logged)
+
+The component also have a `label` property that can be set with Javascript.
 
 To build this sample, use [wasm-pack]
 
