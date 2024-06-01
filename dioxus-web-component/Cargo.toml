@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-web-component"
-version = "0.3.0"
+version = "0.3.1"
 edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
@@ -20,7 +20,7 @@ macros = ["dep:dioxus-web-component-macro"]
 
 [dependencies]
 dioxus = { workspace = true, default-features = true, features = ["web"] }
-dioxus-web-component-macro = { version = "0.3.0", path = "../dioxus-web-component-macro", optional = true }
+dioxus-web-component-macro = { version = "0.3.1", path = "../dioxus-web-component-macro", optional = true }
 futures-channel = { workspace = true }
 futures-util = { version = "0.3.30", default-features = false }
 wasm-bindgen = { workspace = true }
