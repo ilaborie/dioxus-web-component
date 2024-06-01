@@ -55,6 +55,8 @@ Parameters of the component could be:
 * a __property__ if you only want to read/write the parameter as a property of the Javascript `HTMLElement`,
 * or an __event__ if the a parameter is a Dioxus `EventHandler`.
 
+💡TIP: You can be an attribute AND an property if you use the two annotations.
+
 #### Attributes
 
 Attributes can be customized with the `#[attribute]` annotation with:
@@ -64,7 +66,7 @@ Attributes can be customized with the `#[attribute]` annotation with:
 * `option` to mark the attribute optional.
   `true` by default if the type is `Option<...>`.
 * `initial` to set the default value when the HTML attribute is missing
-  By default use the `std::defaultDefault` implementation of the type.
+  By default use the `std::default::Default` implementation of the type.
 * `parse` to provide the conversion between the HTML attribute value (a string) to the type value.
   By default use the `std::str::FromStr` implementation, and fall to the default value if it fails.
 
@@ -80,7 +82,7 @@ We use [wasm-bindgen] to convert the Rust side value to a Javascript value.
 You can customize the property with these attributes:
 
 * `name` to set the Javascript name of the property.
-  By default, it's the kebab-case of the parameter name.
+  By default, it's the camelCase of the parameter name.
 * `readonly` to only generate the custom getter
 * `initial` to set the default value when the HTML attribute is missing
   By default use the `std::defaultDefault` implementation of the type.
@@ -107,11 +109,11 @@ This example uses all annotations:
 
 ```rust, ignore
 use dioxus::prelude::*;
-use dioxus_web_component::web_component;
+use dioxus_web_component::{web_component, InjectedStyle};
 
-#[web_component]
+#[web_component(tag = "my-component", style = InjectedStyle::css(include_str!("./style.css")))]
 fn MyWebComponent(
-    #[attribute(name= "attr1", option = false, initial = String::new(), parse = |value| Some(value.to_string()))]
+    #[attribute(name = "attr1", option = false, initial = String::new(), parse = |value| Some(value.to_string()))]
     attr1: String,
     #[attribute(name = "attr-option", option = true, initial = None, parse = |value| Some(value.to_string()))]
     attr_option: Option<String>,
@@ -373,6 +375,7 @@ fn counter_builder() -> Element {
 
 * only extends `HTMLElement`
 * only work as a replacement of Dioxus `#[component]` annotation (does not work with handmade `Props`)
+* cannot add method callable from Javascript in the web component. (Workaround: use property)
 
 
 ## Contributions

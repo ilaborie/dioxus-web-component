@@ -8,6 +8,9 @@ use syn::ItemFn;
 mod web_component;
 pub(crate) use self::web_component::WebComponent;
 
+mod parameter;
+pub(crate) use self::parameter::Parameter;
+
 mod attribute;
 pub(crate) use self::attribute::Attribute;
 

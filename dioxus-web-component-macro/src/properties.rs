@@ -19,6 +19,7 @@ struct PropertyReceiver {
     try_into_js: Option<Expr>,
 }
 
+#[derive(Clone)]
 pub(super) struct Property {
     pub ident: Ident,
     ty: Type,

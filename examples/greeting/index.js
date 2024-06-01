@@ -9,7 +9,12 @@ btn.onclick = () => {
   if (name) {
     document
       .querySelectorAll("plop-greeting")
-      .forEach((el) => el.setAttribute("name", name));
+      .forEach((el) => {
+        // Set with attribute
+        el.setAttribute("name", name);
+        // Or directly with property
+        el.name = name;
+      });
   }
 };
 
