@@ -66,7 +66,7 @@ fn MyWebComponent(
 <plop-component></plop-component>
 ```
 
-ℹ️ INFO: the custom element tag name have constraints.
+ℹ️ INFO: the custom element tag name has constraints.
 The macro checks the validity of the tag for you.
 See [MDN - Valid custom element names](https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define#valid_custom_element_names)
 
@@ -105,7 +105,7 @@ If the type starts by `EventHandler` it is expected to be an event.
 But, this kind of detection is not reliable, so you might need to add an annotation
 to correct this behavior.
 
-Annotation are also required if you need to customize the behavior.
+The annotations are also required if you need to customize the behavior.
 
 #### Attributes
 
@@ -140,7 +140,7 @@ By default, we expect the attribute type to implement [`std::default::Default`].
 If it's not the case, or if you want to use another value for your attribute you
 can provide your default expression with `#[attribute(initial = String::from("World"))]`.
 
-Note that `Option<T>` implement `Default` with the `None` value
+Note that `Option<T>` implements `Default` with the `None` value
 even if `T` does not implement itself `Default`.
 
 ##### Attribute `parse`
@@ -173,7 +173,7 @@ you need Javascript to get/set the property.
 
 Instead of the `String` representation, you need to be able to convert the Rust type into a 
 Javascript type (here a `wasm_bindgen::JsValue`).
-For setter, you need the opposite conversion.
+For the setter, you need the opposite conversion.
 
 ##### Attribute `name`
 
@@ -182,7 +182,7 @@ You can choose another name with `#[property(name = "valueAsDate")]`.
 
 ##### Attribute `readonly`
 
-If `true`, avoids the javascript side to set the property.
+If `true`, it avoids setting the property from the javascript side.
 By default getter and setter are generated.
 
 ##### Attribute `initial`
@@ -196,10 +196,10 @@ can provide your default expression with `#[property(initial = String::from("Wor
 
 ##### Attribute `try_into_js`
 
-For getter, the property value should be convert to a `wasm_bindgen::JsValue`.
-By default we use the `std::convert::TryInto` implementation.
+For the getter, the property value should be converted to a `wasm_bindgen::JsValue`.
+By default, we use the `std::convert::TryInto` implementation.
 
-Note that there are many way to implement `TryInto<JsValue>`, 
+Note that there are many ways to implement `TryInto<JsValue>`, 
 for example with `impl TryFrom<T> for JsValue` or even `impl From<T> for JsValue`.
 See [Rust `TryInto`](https://doc.rust-lang.org/std/convert/trait.TryInto.html).
 
@@ -207,11 +207,11 @@ You can provide your custom conversion into the `JsValue`
 with the `try_into_js` attribute.
 The expected type for the parsing expression is `FnOnce(T) -> Result<JsValue, _>`.
 Not that we do not care about the error type because
-the error case is ignored and return `undefined`.
+the error case is ignored and returns `undefined`.
 
 The default expression is `|value| value.try_into()`.
 
-Example to convert a custom type that wrap a `bool`:
+Example to convert a custom type that wraps a `bool`:
 
 ```rust, ignore
 // ...
@@ -236,10 +236,10 @@ But in that situation, the recommended way is to implement `From<MyProp> for JsV
 
 ##### Attribute `try_from_js`
 
-For setter, the property value should be convert from a `wasm_bindgen::JsValue`.
-By default we use the `std::convert::TryInto` implementation.
+For the setter, the property value should be converted from a `wasm_bindgen::JsValue`.
+By default, we use the `std::convert::TryInto` implementation.
 
-Note that there are many way to implement `TryInto<T>`, 
+Note that there are many ways to implement `TryInto<T>`, 
 for example with `impl TryFrom<JsValue> for T` or even `impl From<JsValue> for T`.
 See [Rust `TryInto`](https://doc.rust-lang.org/std/convert/trait.TryInto.html).
 
@@ -251,7 +251,7 @@ the error case is ignored.
 
 The default expression is `|value| value.try_into()`.
 
-Example to convert a custom type that wrap a `bool`:
+Example to convert a custom type that wraps a `bool`:
 
 ```rust, ignore
 // ...
@@ -299,11 +299,6 @@ You can avoid the bubbling with `#[event(no_bubble = true)]`.
 
 By default, the event is cancelable.
 You can avoid the bubbling with `#[event(no_cancel = true)]`.
-
-
-#### Properties
-
-Not yet supported.
 
 
 [custom events]: https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent

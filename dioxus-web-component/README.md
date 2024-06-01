@@ -49,13 +49,13 @@ The `#[web_component]` annotation can be configured with:
   By default, it's the kebab case version of the function name.
 * `style` to provide the [`InjectedStyle`] to your component.
 
-Parameters of the component could be:
+The parameters of the component could be:
 
 * an __attribute__ if you want to pass the parameter as an HTML attribute,
 * a __property__ if you only want to read/write the parameter as a property of the Javascript `HTMLElement`,
-* or an __event__ if the a parameter is a Dioxus `EventHandler`.
+* or an __event__ if the parameter is a Dioxus `EventHandler`.
 
-💡TIP: You can be an attribute AND an property if you use the two annotations.
+💡TIP: You can be an attribute AND a property if you use the two annotations.
 
 #### Attributes
 
@@ -77,7 +77,7 @@ To declare a property, you need to use the `#[property]` annotation.
 
 We use [wasm-bindgen] to convert the Rust side value to a Javascript value.
 
-⚠️ IMPORTANT: The getter return a Javascript `Promise`.
+⚠️ IMPORTANT: The getter returns a Javascript `Promise`.
 
 You can customize the property with these attributes:
 
@@ -101,7 +101,7 @@ You can customize the event with these attributes:
 
 * `name` to set the HTML event name.
   By default use the parameter name without the `on` prefix (if any)
-* `no_bubble` to forbid the custom event to bubble
+* `no_bubble` to forbid the custom event from bubbling
 * `no_cancel` to remove the ability to cancel the custom event
 
 
@@ -375,7 +375,7 @@ fn counter_builder() -> Element {
 
 * only extends `HTMLElement`
 * only work as a replacement of Dioxus `#[component]` annotation (does not work with handmade `Props`)
-* cannot add method callable from Javascript in the web component. (Workaround: use property)
+* cannot add a method callable from Javascript in the web component. (Workaround: use property)
 
 
 ## Contributions
