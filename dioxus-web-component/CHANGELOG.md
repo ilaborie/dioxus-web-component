@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.3.1...dioxus-web-component-v0.3.2) - 2024-06-02
+
+### Added
+- Generate the web-component typescript definition ([#43](https://github.com/ilaborie/dioxus-web-component/pull/43))
+
+### Other
+- fix typos ([#41](https://github.com/ilaborie/dioxus-web-component/pull/41))
+
 ## [0.3.1](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-v0.3.0...dioxus-web-component-v0.3.1) - 2024-06-01
 
 ### Added
