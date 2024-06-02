@@ -17,6 +17,7 @@ rust-version = "1.75.0"
 [workspace.dependencies]
 dioxus = "0.5.1"
 wasm-bindgen = "0.2.92"
+wasm-bindgen-futures = "0.4.42"
 web-sys = "0.3.68"
 syn = "2.0.46"
 quote = "1.0.35"
@@ -24,6 +25,7 @@ proc-macro2 = "1.0.74"
 darling = "0.20.0"
 heck = "0.5.0"
 futures-channel = "0.3.30"
+futures-util = { version = "0.3.30", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

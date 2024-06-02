@@ -55,7 +55,13 @@ const FORBIDDEN_NAMES: &[&str] = &[
 ];
 
 #[derive(Debug)]
-pub struct Tag(pub String);
+pub struct Tag(String);
+
+impl Tag {
+    pub(crate) fn new(value: String) -> Self {
+        Self(value)
+    }
+}
 
 impl FromStr for Tag {
     type Err = InvalidTagError;
@@ -69,6 +75,12 @@ impl FromStr for Tag {
 impl FromMeta for Tag {
     fn from_string(value: &str) -> darling::Result<Self> {
         Tag::from_str(value).map_err(Error::custom)
+    }
+}
+
+impl Display for Tag {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", self.0)
     }
 }
 

@@ -3,8 +3,9 @@
 use std::fmt::Debug;
 
 use darling::ast::NestedMeta;
+use darling::error::Accumulator;
 use darling::{Error, FromMeta};
-use heck::{ToKebabCase, ToSnakeCase};
+use heck::{ToKebabCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::ext::IdentExt;
@@ -17,6 +18,7 @@ use crate::{Attribute, Parameter, Property};
 struct WebComponentReceiver {
     tag: Option<Tag>,
     style: Option<Expr>,
+    no_typescript: Option<bool>,
 }
 
 pub(crate) struct WebComponent {
@@ -24,16 +26,18 @@ pub(crate) struct WebComponent {
     style: Option<Expr>,
     parameters: Vec<Parameter>,
     item_fn: ItemFn,
+    no_typescript: Option<bool>,
 }
 
 impl WebComponent {
-    pub(crate) fn parse(args: TokenStream, mut item_fn: ItemFn) -> Result<Self, Error> {
-        let attr_args = NestedMeta::parse_meta_list(args)?;
-        let mut errors = Error::accumulator();
-
-        let (tag, style) = errors
-            .handle(WebComponentReceiver::from_list(&attr_args))
-            .map(|wc| (wc.tag, wc.style))
+    pub(crate) fn parse(
+        attr_args: &[NestedMeta],
+        mut item_fn: ItemFn,
+        errors: &mut Accumulator,
+    ) -> Self {
+        let (tag, style, no_typescript) = errors
+            .handle(WebComponentReceiver::from_list(attr_args))
+            .map(|wc| (wc.tag, wc.style, wc.no_typescript))
             .unwrap_or_default();
 
         let tag = if let Some(tag) = tag {
@@ -45,20 +49,18 @@ impl WebComponent {
                     tag.parse()
                         .map_err(|err| Error::custom(err).with_span(&item_fn.sig.ident))
                 })
-                .unwrap_or(Tag(tag))
+                .unwrap_or(Tag::new(tag))
         };
 
-        let parameters = Parameter::parse(&mut errors, &mut item_fn.sig.inputs);
+        let parameters = Parameter::parse(errors, &mut item_fn.sig.inputs);
 
-        errors.finish()?;
-
-        let result = Self {
+        Self {
             tag,
             style,
             parameters,
             item_fn,
-        };
-        Ok(result)
+            no_typescript,
+        }
     }
 
     fn attributes(&self) -> impl Iterator<Item = &Attribute> {
@@ -99,7 +101,7 @@ impl WebComponent {
             },
             quote::ToTokens::to_token_stream,
         );
-        let tag = &self.tag.0;
+        let tag = &self.tag.to_string();
         let builder_name = self.builder_name();
 
         quote! {
@@ -232,6 +234,47 @@ impl WebComponent {
         let name = &self.item_fn.sig.ident;
         format_ident!("{}_builder", name.to_string().to_snake_case())
     }
+
+    pub fn typescript(&self, errors: &mut Accumulator) -> TokenStream {
+        if self.no_typescript.unwrap_or_default() {
+            return quote! {};
+        }
+        let name = &self.item_fn.sig.ident;
+        let const_name = format_ident!("{}_TYPESCRIPT", name.to_string().to_shouty_snake_case());
+        let type_name = format!("{}Element", name.to_string().to_upper_camel_case());
+        let tag_name = self.tag.to_string();
+        let properties = self
+            .properties()
+            .map(|prop| {
+                let name = prop.js_name();
+                let ty = prop.js_type(errors);
+                if prop.readonly() {
+                    format!("readonly {name}: {ty};")
+                } else {
+                    format!("{name}: {ty};")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let definition = format!(
+            "
+export type {type_name} = HTMLElement & {{
+    {properties}
+}};
+
+declare global {{
+    interface HTMLElementTagNameMap {{
+        '{tag_name}': {type_name};
+    }}
+}}"
+        );
+
+        quote! {
+            #[::wasm_bindgen::prelude::wasm_bindgen(typescript_custom_section)]
+            const #const_name: &str = #definition;
+        }
+    }
 }
 
 impl Debug for WebComponent {
@@ -241,6 +284,7 @@ impl Debug for WebComponent {
             .field("style", &self.style.to_token_stream().to_string())
             .field("parameters", &self.parameters)
             .field("item_fn", &self.item_fn.sig.to_token_stream().to_string())
+            .field("no_typescript", &self.no_typescript)
             .finish()
     }
 }
