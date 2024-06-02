@@ -22,9 +22,9 @@ macros = ["dep:dioxus-web-component-macro"]
 dioxus = { workspace = true, default-features = true, features = ["web"] }
 dioxus-web-component-macro = { version = "0.3.1", path = "../dioxus-web-component-macro", optional = true }
 futures-channel = { workspace = true }
-futures-util = { version = "0.3.30", default-features = false }
+futures-util = { workspace = true, default-features = false }
 wasm-bindgen = { workspace = true }
-wasm-bindgen-futures = "0.4.42"
+wasm-bindgen-futures = { workspace = true }
 
 [dependencies.web-sys]
 workspace = true

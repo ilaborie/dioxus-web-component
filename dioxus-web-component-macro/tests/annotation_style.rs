@@ -1,13 +1,13 @@
 use std::convert::Infallible;
 
 use dioxus::prelude::*;
-use dioxus_web_component::web_component;
+use dioxus_web_component::{web_component, InjectedStyle};
 use wasm_bindgen::JsValue;
 
 #[test]
 fn just_need_to_compile() {}
 
-#[web_component]
+#[web_component(tag = "plop-wc")]
 fn MyWebComponent(
     attr1: String,
     attr_option: Option<String>,
@@ -17,7 +17,7 @@ fn MyWebComponent(
     None
 }
 
-#[web_component]
+#[web_component(style = InjectedStyle::css(":host {display:flex;}"))]
 fn MyWebComponent2(
     #[attribute] attr1: String,
     #[attribute] attr_option: Option<String>,
@@ -29,7 +29,7 @@ fn MyWebComponent2(
     None
 }
 
-#[web_component]
+#[web_component(no_typescript)]
 fn MyWebComponent3(
     #[attribute(name= "attr1", option = false, initial = String::new(), parse = |value| Some(value.to_string()))]
     attr1: String,

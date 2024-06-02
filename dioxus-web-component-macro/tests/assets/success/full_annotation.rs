@@ -24,6 +24,7 @@ fn MyWebComponent(
             Ok::<_, Infallible>(js_value)
         },
         try_from_js= |value| Ok::<_, Infallible>(MyProp(value.is_truthy())),
+        js_type = "boolean",
     )]
     prop2: MyProp,
     #[event(name = "event", no_bubble = false, no_cancel = false)] event: EventHandler<i64>,

@@ -3,12 +3,13 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
+use darling::error::Accumulator;
 use darling::FromMeta;
-use heck::ToKebabCase as _;
+use heck::{ToKebabCase, ToLowerCamelCase};
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::ext::IdentExt;
-use syn::{Expr, Meta, Type};
+use syn::{Expr, GenericArgument, Meta, PathArguments, PathSegment, Type};
 
 #[derive(Debug, FromMeta, Default)]
 struct PropertyReceiver {
@@ -17,6 +18,7 @@ struct PropertyReceiver {
     initial: Option<Expr>,
     try_from_js: Option<Expr>,
     try_into_js: Option<Expr>,
+    js_type: Option<String>,
 }
 
 #[derive(Clone)]
@@ -28,6 +30,7 @@ pub(super) struct Property {
     initial: Option<Expr>,
     try_from_js: Option<Expr>,
     try_into_js: Option<Expr>,
+    js_type: Option<String>,
 }
 
 impl Debug for Property {
@@ -46,23 +49,12 @@ impl Debug for Property {
                 "try_into_js",
                 &self.try_into_js.to_token_stream().to_string(),
             )
+            .field("js_type", &self.js_type)
             .finish()
     }
 }
 
 impl Property {
-    // pub(super) fn new(ident: Ident, ty: Type) -> Self {
-    //     Self {
-    //         ident,
-    //         ty,
-    //         name: None,
-    //         readonly: None,
-    //         initial: None,
-    //         try_from_js: None,
-    //         try_into_js: None,
-    //     }
-    // }
-
     pub(super) fn parse(
         attr: &syn::Attribute,
         ident: Ident,
@@ -82,6 +74,7 @@ impl Property {
             initial: receiver.initial,
             try_from_js: receiver.try_from_js,
             try_into_js: receiver.try_into_js,
+            js_type: receiver.js_type,
         };
         Ok(result)
     }
@@ -137,7 +130,7 @@ impl Property {
     }
 
     pub(super) fn new_property(&self) -> TokenStream {
-        let name = self.name().to_string();
+        let name = self.js_name();
         let readonly = self.readonly.unwrap_or_default();
 
         quote! {
@@ -194,5 +187,94 @@ impl Property {
         quote! {
             #ident: #ident().clone(),
         }
+    }
+
+    pub(super) fn js_name(&self) -> String {
+        self.name().to_lower_camel_case()
+    }
+
+    pub(super) fn js_type(&self, errors: &mut Accumulator) -> String {
+        if let Some(ty) = &self.js_type {
+            return ty.clone();
+        }
+        extract_js_type(&self.ty, errors)
+    }
+}
+
+#[allow(clippy::print_stderr)]
+// TODO add a warning
+// see https://github.com/rust-lang/rust/issues/54140
+fn extract_js_type(ty: &Type, errors: &mut Accumulator) -> String {
+    let result = match ty {
+        Type::Array(arr) => {
+            let inner = extract_js_type(&arr.elem, errors);
+            Some(format!("Array<{inner}>"))
+        }
+        Type::Group(grp) => Some(extract_js_type(&grp.elem, errors)),
+        Type::Never(_) => Some("never".to_string()),
+        Type::Paren(paren) => Some(extract_js_type(&paren.elem, errors)),
+        Type::Tuple(tpl) => {
+            let inner = tpl
+                .elems
+                .iter()
+                .map(|ty| extract_js_type(ty, errors))
+                .collect::<Vec<_>>();
+            Some(format!("[{}]", inner.join(", ")))
+        }
+        Type::Path(path) if path.path.segments.len() == 1 =>
+        {
+            #[allow(clippy::indexing_slicing)]
+            extract_path_segment_js_type(&path.path.segments[0], errors)
+        }
+        // TODO maybe detect some predefine path like std collections
+        // Other cases are not handled
+        _ => None,
+    };
+
+    result.unwrap_or_else(|| {
+        let msg = format!(
+            "Oops, we cannot define the Javascript type for {ty:?}.
+Use the explicit `js_type` attribute on the property to define the expected type.
+Or, disable the typescript generation with `#[web_component(no_typescript = true,  ...)]`"
+        );
+        errors.push(darling::Error::custom(msg).with_span(ty));
+        "any".to_string()
+    })
+}
+
+#[allow(clippy::match_same_arms)]
+fn extract_path_segment_js_type(segment: &PathSegment, errors: &mut Accumulator) -> Option<String> {
+    // dbg!(&segment);
+    let ident = segment.ident.to_string();
+    match ident.to_string().as_str() {
+        "bool" => Some("boolean".to_string()),
+        "u8" | "u16" | "u32" | "i16" | "i32" | "i64" | "f32" | "f64" => Some("number".to_string()),
+        // it's probably better to have a number for usize/isize
+        "isize" | "usize" => Some("number".to_string()),
+        "u64" => Some("bigint".to_string()),
+        "char" | "String" => Some("string".to_string()),
+        "Option" => {
+            let PathArguments::AngleBracketed(generics) = &segment.arguments else {
+                return None;
+            };
+            let Some(GenericArgument::Type(inner_ty)) = generics.args.first() else {
+                return None;
+            };
+
+            let inner = extract_js_type(inner_ty, errors);
+            Some(format!("{inner} | null"))
+        }
+        "Vec" => {
+            let PathArguments::AngleBracketed(generics) = &segment.arguments else {
+                return None;
+            };
+            let Some(GenericArgument::Type(inner_ty)) = generics.args.first() else {
+                return None;
+            };
+
+            let inner = extract_js_type(inner_ty, errors);
+            Some(format!("Array<{inner}>"))
+        }
+        _ => None,
     }
 }
