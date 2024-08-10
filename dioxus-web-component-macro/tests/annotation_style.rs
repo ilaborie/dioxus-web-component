@@ -14,7 +14,7 @@ fn MyWebComponent(
     event: EventHandler<i64>,
     on_snake_evt: EventHandler<bool>,
 ) -> Element {
-    None
+    rsx!()
 }
 
 #[web_component(style = InjectedStyle::css(":host {display:flex;}"))]
@@ -26,7 +26,7 @@ fn MyWebComponent2(
     #[event] event: EventHandler<i64>,
     #[event] on_snake_evt: EventHandler<bool>,
 ) -> Element {
-    None
+    rsx!()
 }
 
 #[web_component(no_typescript)]
@@ -54,7 +54,7 @@ fn MyWebComponent3(
         bool,
     >,
 ) -> Element {
-    None
+    rsx!()
 }
 
 #[derive(Clone, PartialEq)]

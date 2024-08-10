@@ -1,8 +1,8 @@
 :host {
-    outline: medium dotted red;
-    --my-color: black;
+  outline: medium dotted red;
+  --my-color: black;
 }
 
-.dioxus p {
-    color: var(--my-color);
+p {
+  color: var(--my-color);
 }

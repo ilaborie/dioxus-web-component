@@ -104,7 +104,10 @@ impl WebComponent {
         let tag = &self.tag.to_string();
         let builder_name = self.builder_name();
 
+        let doc = format!("Register the `<{}>` web-component", self.tag);
+
         quote! {
+            #[doc = #doc]
             #visibility fn #fn_name() {
                 let attributes = ::std::vec![
                     #(#attribute_names.to_string()),*
@@ -124,7 +127,13 @@ impl WebComponent {
 
         let attributes = self.parameters.iter().map(Parameter::struct_attribute);
 
+        let doc = format!(
+            "The `{name}` web-component that implement [`::dioxus_web_component::DioxusWebComponent`]",
+        );
+
         quote! {
+            #[doc = #doc]
+            #[automatically_derived]
             #[derive(Clone, Copy)]
             #[allow(dead_code)]
             #visibility struct #name {
@@ -144,9 +153,9 @@ impl WebComponent {
         let property_get = self.properties().map(Property::pattern_get_property);
 
         quote! {
+            #[automatically_derived]
             impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn set_attribute(&mut self, attribute: &str, new_value: Option<String>) {
                     match attribute {
                         #(#attribute_patterns)*
@@ -154,8 +163,7 @@ impl WebComponent {
                     }
                 }
 
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn set_property(&mut self, property: &str, value: ::wasm_bindgen::JsValue) {
                     match property{
                         #(#property_set)*
@@ -163,8 +171,7 @@ impl WebComponent {
                     }
                 }
 
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn get_property(&mut self, property: &str) -> ::wasm_bindgen::JsValue {
                     match property{
                         #(#property_get)*
@@ -193,9 +200,9 @@ impl WebComponent {
         let all_rsx_attributes = self.parameters.iter().map(Parameter::rsx_attribute);
 
         quote! {
-            #[allow(clippy::default_trait_access)]
-            #[allow(clippy::clone_on_copy)]
-            #[allow(clippy::redundant_closure)]
+            #[doc(hidden)]
+            #[automatically_derived]
+            #[allow(clippy::default_trait_access, clippy::clone_on_copy, clippy::redundant_closure)]
             fn #builder_name() -> ::dioxus::prelude::Element {
                 let mut #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
 
@@ -208,7 +215,9 @@ impl WebComponent {
                 let #coroutine_name = ::dioxus::prelude::use_coroutine(move |mut rx| async move {
                     use ::dioxus_web_component::{StreamExt, DioxusWebComponent};
                     while let Some(message) = rx.next().await {
-                        #instance_name.handle_message(message);
+                        ::dioxus::prelude::spawn(async move {
+                            #instance_name.handle_message(message);
+                        });
                     }
                 });
 

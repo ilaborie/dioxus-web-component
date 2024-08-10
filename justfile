@@ -5,7 +5,7 @@ default:
 
 # Install requirement for recipes
 requirement:
-    cargo binstall dioxus-cli cargo-watch cargo-nextest cargo-sort wasm-pack basic-http-server
+    cargo binstall dioxus-cli bacon cargo-nextest cargo-sort wasm-pack basic-http-server
 
 # Format the code and sort dependencies
 format:
@@ -32,9 +32,9 @@ check: && _check_format lint test
 
 # Run TDD mode
 tdd:
-    cargo watch -c -s "just check"
+    bacon
 
-# Build documentation (rustdoc, book)
+# Build documentation
 doc:
     cargo doc --all-features --no-deps
 
@@ -47,3 +47,7 @@ example-greeting: (_example "greeting")
 
 # Run Counter example
 example-counter: (_example "counter")
+
+# Run Dioxus (web component) in Dioxus example
+example-dx-in-dx:
+    cd examples/dx-in-dx && dx serve

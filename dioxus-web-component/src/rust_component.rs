@@ -34,22 +34,14 @@ impl RustComponent {
     }
 
     #[wasm_bindgen(js_name = "newInstance")]
-    pub fn new_instance(&self, root: &ShadowRoot) -> RustComponentInstance {
-        // XXX Create an element to attach the dioxus component
-        // Dioxus require a `web_sys::Element`, and ShadowRoot is not an Element
-        // So we use a `<div class="dioxus"></div>` to wrap the component
-        // See https://github.com/DioxusLabs/dioxus/pull/3012
+    pub fn new_instance(&self, root: ShadowRoot) -> RustComponentInstance {
         let window = window().unwrap_throw();
         let document = window.document().unwrap_throw();
-        let inner_elt = document.create_element("div").unwrap_throw();
-        inner_elt.set_class_name("dioxus");
-
-        self.style.inject(&document, root);
-        root.append_child(&inner_elt).unwrap_throw();
+        self.style.inject(&document, &root);
 
         RustComponentInstance {
             attributes: self.attributes(),
-            inner_elt,
+            root,
             dx_el_builder: self.dx_el_builder,
             tx: Rc::default(),
         }
@@ -59,7 +51,7 @@ impl RustComponent {
 #[wasm_bindgen(skip_typescript)]
 pub struct RustComponentInstance {
     attributes: Vec<String>,
-    inner_elt: web_sys::Element,
+    root: web_sys::ShadowRoot,
     dx_el_builder: DxElBuilder,
     tx: Rc<RwLock<Option<UnboundedSender<Message>>>>,
 }
@@ -73,7 +65,8 @@ impl RustComponentInstance {
             tx: Rc::clone(&self.tx),
         };
 
-        let config = Config::new().rootelement(self.inner_elt.clone());
+        let node = self.root.clone().unchecked_into();
+        let config = Config::new().rootnode(node);
         LaunchBuilder::web()
             .with_cfg(config)
             .with_context(ctx)

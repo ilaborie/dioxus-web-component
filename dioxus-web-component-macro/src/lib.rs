@@ -24,6 +24,7 @@ pub(crate) use self::event::Event;
 pub(crate) mod tag;
 
 /// Proc macro to create the web component glue
+// FIXME improve doc here
 #[proc_macro_attribute]
 pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
     let item = syn::parse_macro_input!(input as ItemFn);

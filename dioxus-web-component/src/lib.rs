@@ -105,8 +105,8 @@ pub trait DioxusWebComponent {
     }
 
     /// Handle a message
-    fn handle_message(&mut self, msg: Message) {
-        match msg {
+    fn handle_message(&mut self, message: Message) {
+        match message {
             Message::SetAttribute { name, value } => self.set_attribute(&name, value),
             Message::Get { name, tx } => {
                 let value = self.get_property(&name);
