@@ -9,5 +9,5 @@ fn MyWebComponent(
     #[attribute(value= "name")]
     attr: String,
 ) -> Element {
-    None
+    rsx!()
 }

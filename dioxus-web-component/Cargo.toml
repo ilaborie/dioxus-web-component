@@ -19,9 +19,10 @@ default = ["macros"]
 macros = ["dep:dioxus-web-component-macro"]
 
 [dependencies]
-dioxus = { workspace = true, default-features = true, features = ["web"] }
+dioxus = { workspace = true, features = ["web", "logger"] }
+dioxus-web = "0.6.1"
 dioxus-web-component-macro = { version = "0.3.3", path = "../dioxus-web-component-macro", optional = true }
-futures-util = { workspace = true, default-features = false }
+futures = { workspace = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
 

@@ -1,3 +1,4 @@
+use dioxus::logger::tracing::debug;
 use dioxus::prelude::EventHandler;
 use wasm_bindgen::{JsValue, UnwrapThrowExt};
 use web_sys::{CustomEvent, EventTarget};
@@ -48,6 +49,7 @@ where
         event.init_custom_event_with_can_bubble_and_cancelable_and_detail(
             event_type, can_bubble, cancelable, &detail,
         );
+        debug!(?event, "dispatch event");
         let target = target.as_ref();
         target.dispatch_event(&event).unwrap_throw();
     })

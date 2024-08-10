@@ -6,5 +6,5 @@ fn main() {
 
 #[web_component]
 fn Component(attr: String) -> Element {
-    None
+    rsx!()
 }

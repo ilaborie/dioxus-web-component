@@ -1,0 +1,20 @@
+[package]
+name = "dx-in-dx"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+description = "Dioxus in Dioxus web component example"
+keywords = ["dioxus", "web-component", "wasm"]
+categories = ["wasm", "web-programming"]
+readme = "README.md"
+
+[dependencies]
+dioxus = { workspace = true, features = ["web"] }
+dioxus-web-component = { path = "../../dioxus-web-component" }
+wasm-bindgen = { workspace = true }
+
+[lints]
+workspace = true

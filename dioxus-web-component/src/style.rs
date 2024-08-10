@@ -4,6 +4,14 @@ use wasm_bindgen::UnwrapThrowExt as _;
 use web_sys::{Document, ShadowRoot};
 
 /// Provide style to the web component
+///
+/// Typical usage:
+///
+/// ```rust, ignore
+/// use dioxus_web_component::InjectedStyle;
+///
+/// const STYLE: InjectedStyle = InjectedStyle::css(include_str!("../style.css"));
+/// ```
 #[derive(Debug, Clone, Default)]
 pub enum InjectedStyle {
     /// No style provided

@@ -1,17 +1,17 @@
 :host {
-    outline: medium dotted red;
-    margin: .5rem 1rem;
+  outline: medium dotted red;
+  margin: .5rem 1rem;
 }
 
 .dioxus {
-   display: flex;
-   max-width: 10ch;
-   align-items: center;
-   justify-content: space-evenly;
-   gap: .5rem;
-   padding: .25rem;
+  display: flex;
+  max-width: 10ch;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: .5rem;
+  padding: .25rem;
 }
 
 output {
-    font-family: monospace;
+  font-family: monospace;
 }

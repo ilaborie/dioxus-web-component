@@ -27,6 +27,8 @@ syn = { workspace = true }
 assert2 = "0.3.14"
 dioxus = { workspace = true, default-features = true, features = ["web"] }
 dioxus-web-component = { path = "../dioxus-web-component" }
+insta = { workspace = true }
+prettyplease = "0.2.25"
 rstest = { version = "0.23.0", default-features = false }
 serde = "1.0.194"
 trybuild = { version = "1.0.93", features = ["diff"] }

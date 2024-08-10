@@ -14,11 +14,17 @@ use syn::{Expr, Ident, ItemFn};
 use crate::tag::Tag;
 use crate::{Attribute, Parameter, Property};
 
-#[derive(Debug, FromMeta)]
+#[derive(Debug, Default, FromMeta)]
 struct WebComponentReceiver {
     tag: Option<Tag>,
     style: Option<Expr>,
     no_typescript: Option<bool>,
+}
+impl WebComponentReceiver {
+    fn parse(attr_args: TokenStream) -> Result<Self, darling::Error> {
+        let attr_args = NestedMeta::parse_meta_list(attr_args)?;
+        Self::from_list(&attr_args)
+    }
 }
 
 pub(crate) struct WebComponent {
@@ -31,13 +37,16 @@ pub(crate) struct WebComponent {
 
 impl WebComponent {
     pub(crate) fn parse(
-        attr_args: &[NestedMeta],
+        attr_args: TokenStream,
         mut item_fn: ItemFn,
         errors: &mut Accumulator,
     ) -> Self {
-        let (tag, style, no_typescript) = errors
-            .handle(WebComponentReceiver::from_list(attr_args))
-            .map(|wc| (wc.tag, wc.style, wc.no_typescript))
+        let WebComponentReceiver {
+            tag,
+            style,
+            no_typescript,
+        } = errors
+            .handle(WebComponentReceiver::parse(attr_args))
             .unwrap_or_default();
 
         let tag = if let Some(tag) = tag {
@@ -79,7 +88,25 @@ impl WebComponent {
 }
 
 impl WebComponent {
-    pub fn dioxus_component(&self) -> TokenStream {
+    pub fn generate(&self, errors: &mut Accumulator) -> TokenStream {
+        let dioxus_component = self.dioxus_component();
+        let register_fn = self.register_fn();
+        let web_component = self.web_component();
+        let impl_web_component = self.impl_dioxus_web_component();
+        let builder_fn = self.builder_fn();
+        let typescript = self.typescript(errors);
+
+        quote! {
+            #dioxus_component
+            #register_fn
+            #web_component
+            #impl_web_component
+            #builder_fn
+            #typescript
+        }
+    }
+
+    fn dioxus_component(&self) -> TokenStream {
         let item_fn = &self.item_fn;
         quote! {
             #[component]
@@ -87,7 +114,7 @@ impl WebComponent {
         }
     }
 
-    pub fn register_fn(&self) -> TokenStream {
+    fn register_fn(&self) -> TokenStream {
         let visibility = &self.item_fn.vis;
         let name = self.item_fn.sig.ident.to_string();
         let fn_name = format_ident!("register_{}", name.to_snake_case());
@@ -104,7 +131,10 @@ impl WebComponent {
         let tag = &self.tag.to_string();
         let builder_name = self.builder_name();
 
+        let doc = format!("Register the `<{}>` web-component", self.tag);
+
         quote! {
+            #[doc = #doc]
             #visibility fn #fn_name() {
                 let attributes = ::std::vec![
                     #(#attribute_names.to_string()),*
@@ -118,13 +148,19 @@ impl WebComponent {
         }
     }
 
-    pub fn web_component(&self) -> TokenStream {
+    fn web_component(&self) -> TokenStream {
         let visibility = &self.item_fn.vis;
         let name = self.web_component_name();
 
         let attributes = self.parameters.iter().map(Parameter::struct_attribute);
 
+        let doc = format!(
+            "The `{name}` web-component that implement [`::dioxus_web_component::DioxusWebComponent`]",
+        );
+
         quote! {
+            #[doc = #doc]
+            #[automatically_derived]
             #[derive(Clone, Copy)]
             #[allow(dead_code)]
             #visibility struct #name {
@@ -133,7 +169,7 @@ impl WebComponent {
         }
     }
 
-    pub fn impl_dioxus_web_component(&self) -> TokenStream {
+    fn impl_dioxus_web_component(&self) -> TokenStream {
         let wc_name = self.web_component_name();
         let attribute_patterns = self.attributes().map(Attribute::pattern_attribute_changed);
 
@@ -144,38 +180,43 @@ impl WebComponent {
         let property_get = self.properties().map(Property::pattern_get_property);
 
         quote! {
+            #[automatically_derived]
             impl ::dioxus_web_component::DioxusWebComponent for #wc_name {
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn set_attribute(&mut self, attribute: &str, new_value: Option<String>) {
                     match attribute {
                         #(#attribute_patterns)*
-                        _ => {}
+                        _ => {
+                            ::dioxus::logger::tracing::warn!("No attribute {attribute} to set");
+                        }
                     }
                 }
 
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn set_property(&mut self, property: &str, value: ::wasm_bindgen::JsValue) {
-                    match property{
+                    match property {
                         #(#property_set)*
-                        _ => {}
+                        _ => {
+                            ::dioxus::logger::tracing::warn!("No property {property} to set");
+                        }
                     }
                 }
 
-                #[allow(clippy::single_match)]
-                #[allow(clippy::redundant_closure)]
+                #[allow(clippy::single_match, clippy::redundant_closure)]
                 fn get_property(&mut self, property: &str) -> ::wasm_bindgen::JsValue {
-                    match property{
+                    match property {
                         #(#property_get)*
-                        _ => ::wasm_bindgen::JsValue::undefined(),
+                        _ => {
+                            ::dioxus::logger::tracing::warn!("No property {property} to get");
+                            ::wasm_bindgen::JsValue::undefined()
+                        }
                     }
                 }
             }
         }
     }
 
-    pub fn builder_fn(&self) -> TokenStream {
+    fn builder_fn(&self) -> TokenStream {
         let name = &self.item_fn.sig.ident;
         let builder_name = self.builder_name();
         let wc_name = self.web_component_name();
@@ -193,9 +234,9 @@ impl WebComponent {
         let all_rsx_attributes = self.parameters.iter().map(Parameter::rsx_attribute);
 
         quote! {
-            #[allow(clippy::default_trait_access)]
-            #[allow(clippy::clone_on_copy)]
-            #[allow(clippy::redundant_closure)]
+            #[doc(hidden)]
+            #[automatically_derived]
+            #[allow(clippy::default_trait_access, clippy::clone_on_copy, clippy::redundant_closure)]
             fn #builder_name() -> ::dioxus::prelude::Element {
                 let mut #shared_name = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
 
@@ -208,7 +249,9 @@ impl WebComponent {
                 let #coroutine_name = ::dioxus::prelude::use_coroutine(move |mut rx| async move {
                     use ::dioxus_web_component::{StreamExt, DioxusWebComponent};
                     while let Some(message) = rx.next().await {
-                        #instance_name.handle_message(message);
+                        ::dioxus::prelude::spawn(async move {
+                            #instance_name.handle_message(message);
+                        });
                     }
                 });
 
@@ -286,5 +329,27 @@ impl Debug for WebComponent {
             .field("item_fn", &self.item_fn.sig.to_token_stream().to_string())
             .field("no_typescript", &self.no_typescript)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert2::let_assert;
+
+    use super::*;
+
+    #[test]
+    fn should_parse_attributes_args() {
+        let_assert!(Ok(args) = r#"tag="toto-tata""#.parse());
+        let result = WebComponentReceiver::parse(args);
+        let_assert!(Ok(_) = result);
+    }
+
+    #[test]
+    fn should_parse_attributes_args_with_error() {
+        let_assert!(Ok(args) = r#"tag="toto""#.parse());
+        let result = WebComponentReceiver::parse(args);
+        let_assert!(Err(error) = result);
+        insta::assert_debug_snapshot!(error);
     }
 }

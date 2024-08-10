@@ -1,0 +1,103 @@
+---
+source: dioxus-web-component-macro/src/lib.rs
+expression: formatted
+snapshot_kind: text
+---
+#[component]
+fn MyWebComponent(
+    on_event: EventHandler<i64>,
+    on_snake_evt: EventHandler<bool>,
+) -> Element {
+    rsx!()
+}
+///Register the `<my-web-component>` web-component
+fn register_my_web_component() {
+    let attributes = ::std::vec![];
+    let properties = ::std::vec![];
+    let style = ::dioxus_web_component::InjectedStyle::default();
+    ::dioxus_web_component::register_dioxus_web_component(
+        "my-web-component",
+        attributes,
+        properties,
+        style,
+        my_web_component_builder,
+    );
+}
+///The `MyWebComponentWebComponent` web-component that implement [`::dioxus_web_component::DioxusWebComponent`]
+#[automatically_derived]
+#[derive(Clone, Copy)]
+#[allow(dead_code)]
+struct MyWebComponentWebComponent {
+    on_event: EventHandler<i64>,
+    on_snake_evt: EventHandler<bool>,
+}
+#[automatically_derived]
+impl ::dioxus_web_component::DioxusWebComponent for MyWebComponentWebComponent {
+    #[allow(clippy::single_match, clippy::redundant_closure)]
+    fn set_attribute(&mut self, attribute: &str, new_value: Option<String>) {
+        match attribute {
+            _ => {
+                ::dioxus::logger::tracing::warn!("No attribute {attribute} to set");
+            }
+        }
+    }
+    #[allow(clippy::single_match, clippy::redundant_closure)]
+    fn set_property(&mut self, property: &str, value: ::wasm_bindgen::JsValue) {
+        match property {
+            _ => {
+                ::dioxus::logger::tracing::warn!("No property {property} to set");
+            }
+        }
+    }
+    #[allow(clippy::single_match, clippy::redundant_closure)]
+    fn get_property(&mut self, property: &str) -> ::wasm_bindgen::JsValue {
+        match property {
+            _ => {
+                ::dioxus::logger::tracing::warn!("No property {property} to get");
+                ::wasm_bindgen::JsValue::undefined()
+            }
+        }
+    }
+}
+#[doc(hidden)]
+#[automatically_derived]
+#[allow(clippy::default_trait_access, clippy::clone_on_copy, clippy::redundant_closure)]
+fn my_web_component_builder() -> ::dioxus::prelude::Element {
+    let mut __wc = ::dioxus::prelude::use_context::<::dioxus_web_component::Shared>();
+    let on_event = ::dioxus_web_component::custom_event_handler(
+        __wc.event_target().clone(),
+        "event",
+        ::dioxus_web_component::CustomEventOptions {
+            can_bubble: true,
+            cancelable: true,
+        },
+    );
+    let on_snake_evt = ::dioxus_web_component::custom_event_handler(
+        __wc.event_target().clone(),
+        "snake-evt",
+        ::dioxus_web_component::CustomEventOptions {
+            can_bubble: true,
+            cancelable: true,
+        },
+    );
+    let mut __my_web_component_web_component = MyWebComponentWebComponent {
+        on_event,
+        on_snake_evt,
+    };
+    let __coroutine = ::dioxus::prelude::use_coroutine(move |mut rx| async move {
+        use ::dioxus_web_component::{StreamExt, DioxusWebComponent};
+        while let Some(message) = rx.next().await {
+            ::dioxus::prelude::spawn(async move {
+                __my_web_component_web_component.handle_message(message);
+            });
+        }
+    });
+    ::dioxus::prelude::use_effect(move || {
+        __wc.set_tx(__coroutine.tx());
+    });
+    rsx! {
+        MyWebComponent { on_event, on_snake_evt, }
+    }
+}
+#[::wasm_bindgen::prelude::wasm_bindgen(typescript_custom_section)]
+const MY_WEB_COMPONENT_TYPESCRIPT: &str = "\nexport type MyWebComponentElement = HTMLElement & {\n    \n};\n\ndeclare global {\n    interface HTMLElementTagNameMap {\n        'my-web-component': MyWebComponentElement;\n    }\n}";
