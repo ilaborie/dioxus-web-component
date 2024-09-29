@@ -1,11 +1,11 @@
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{mpsc, RwLock};
 
 use dioxus::hooks::UnboundedSender;
 use dioxus::prelude::LaunchBuilder;
 use dioxus::web::Config;
-use futures_channel::oneshot;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, HtmlElement, ShadowRoot};
 
 use crate::{InjectedStyle, Message, Property, Shared};
@@ -38,6 +38,7 @@ impl RustComponent {
         // XXX Create an element to attach the dioxus component
         // Dioxus require a `web_sys::Element`, and ShadowRoot is not an Element
         // So we use a `<div class="dioxus"></div>` to wrap the component
+        // See https://github.com/DioxusLabs/dioxus/pull/3012
         let window = window().unwrap_throw();
         let document = window.document().unwrap_throw();
         let inner_elt = document.create_element("div").unwrap_throw();
@@ -60,7 +61,7 @@ pub struct RustComponentInstance {
     attributes: Vec<String>,
     inner_elt: web_sys::Element,
     dx_el_builder: DxElBuilder,
-    tx: Rc<RefCell<Option<UnboundedSender<Message>>>>,
+    tx: Rc<RwLock<Option<UnboundedSender<Message>>>>,
 }
 
 #[wasm_bindgen]
@@ -80,11 +81,15 @@ impl RustComponentInstance {
     }
 
     fn send(&mut self, message: Message) {
-        let tx = self.tx.borrow_mut();
-        let Some(tx) = tx.as_ref() else {
-            return;
-        };
-        let _ = tx.unbounded_send(message);
+        let tx = Rc::clone(&self.tx);
+        spawn_local(async move {
+            // Read (skip if poisoned)
+            if let Ok(sender) = tx.try_read() {
+                if let Some(sender) = sender.as_ref() {
+                    let _ = sender.unbounded_send(message);
+                }
+            }
+        });
     }
 
     #[wasm_bindgen(js_name = "attributeChanged")]
@@ -104,10 +109,10 @@ impl RustComponentInstance {
     }
 
     #[wasm_bindgen(js_name = "getProperty")]
-    pub async fn get_property(&mut self, name: String) -> JsValue {
-        let (tx, rx) = oneshot::channel();
+    pub fn get_property(&mut self, name: String) -> JsValue {
+        let (tx, rx) = mpsc::sync_channel(0); // oneshot
         self.send(Message::Get { name, tx });
-        rx.await.unwrap_or(JsValue::undefined())
+        rx.recv().unwrap_or(JsValue::undefined())
     }
 
     #[wasm_bindgen(js_name = "setProperty")]
@@ -116,6 +121,9 @@ impl RustComponentInstance {
     }
 
     pub fn disconnect(&mut self) {
-        self.tx.take();
+        // Skip if poisoned
+        if let Ok(mut tx) = self.tx.write() {
+            tx.take();
+        }
     }
 }
