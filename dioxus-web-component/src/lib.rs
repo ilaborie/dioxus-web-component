@@ -1,12 +1,11 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{mpsc, RwLock};
 
 use dioxus::dioxus_core::Element;
 use dioxus::hooks::UnboundedSender;
-use futures_channel::oneshot;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
@@ -21,6 +20,7 @@ pub use self::style::*;
 
 mod rust_component;
 
+/// Re-export, use this trait in the coroutine
 pub use futures_util::StreamExt;
 
 /// Message from web component to dioxus
@@ -39,7 +39,7 @@ pub enum Message {
         /// Property name
         name: String,
         /// reply channel
-        tx: oneshot::Sender<JsValue>,
+        tx: mpsc::SyncSender<JsValue>,
     },
     /// Set property
     Set {
@@ -55,7 +55,7 @@ pub enum Message {
 pub struct Shared {
     attributes: Vec<String>,
     event_target: web_sys::HtmlElement,
-    tx: Rc<RefCell<Option<UnboundedSender<Message>>>>,
+    tx: Rc<RwLock<Option<UnboundedSender<Message>>>>,
 }
 
 impl Shared {
@@ -77,9 +77,10 @@ impl Shared {
                 value: Some(value),
             });
         }
-        // Keep sender
-        let mut cell = self.tx.borrow_mut();
-        *cell = Some(tx);
+        // Keep sender (skip if poisoned)
+        if let Ok(mut cell) = self.tx.try_write() {
+            *cell = Some(tx);
+        }
     }
 }
 

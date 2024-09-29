@@ -24,17 +24,18 @@ quote = "1.0.35"
 proc-macro2 = "1.0.74"
 darling = "0.20.0"
 heck = "0.5.0"
-futures-channel = "0.3.30"
 futures-util = { version = "0.3.30", default-features = false }
+# tracing = "0.1.40"
+# wasm-tracing = "0.2.1"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
 missing_docs = "warn"
 
 [workspace.lints.clippy]
-perf = "warn"
-pedantic = "warn"
-cargo = "warn"
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
 
 undocumented_unsafe_blocks = "deny"
 
@@ -52,3 +53,12 @@ unnecessary_safety_doc = "warn"
 unwrap_used = "warn"
 
 module_name_repetitions = "allow"
+
+[profile.release]
+opt-level = "z"
+debug = false
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+incremental = false

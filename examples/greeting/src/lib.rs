@@ -24,5 +24,7 @@ fn Greetings(
     #[property]
     name: String,
 ) -> Element {
-    rsx! { p { "Hello {name}!" } }
+    rsx! {
+        p { "Hello {name}!" }
+    }
 }

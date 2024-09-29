@@ -77,8 +77,6 @@ To declare a property, you need to use the `#[property]` annotation.
 
 We use [wasm-bindgen] to convert the Rust side value to a Javascript value.
 
-⚠️ IMPORTANT: The getter returns a Javascript `Promise`.
-
 You can customize the property with these attributes:
 
 * `name` to set the Javascript name of the property.
