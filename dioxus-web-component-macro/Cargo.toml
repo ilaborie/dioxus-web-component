@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-web-component-macro"
-version = "0.3.2"
+version = "0.3.3"
 edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
