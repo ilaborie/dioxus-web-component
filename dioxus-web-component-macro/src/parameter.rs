@@ -53,7 +53,7 @@ impl Parameter {
         match self {
             Self::Attribute(attr, _) => attr.rsx_attribute(),
             Self::Property(prop) => prop.rsx_attribute(),
-            Self::Event(evt) => evt.ident.to_token_stream(),
+            Self::Event(evt) => evt.rsx_attribute(),
         }
     }
 }
@@ -125,7 +125,8 @@ impl ParameterInfo {
             (None, None, Some(event)) => Parameter::Event(event),
             (None, None, None) => {
                 let ty_str = ty.to_token_stream().to_string();
-                let is_event = ty_str.starts_with("EventHandler <");
+                let is_event =
+                    ty_str.starts_with("EventHandler <") || ty_str.starts_with("Callback <");
                 if is_event {
                     Parameter::Event(Event::new(ident, ty))
                 } else {

@@ -1,15 +1,18 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
-use std::rc::Rc;
-use std::sync::{mpsc, RwLock};
+use std::sync::Arc;
+use std::sync::RwLock;
 
 use dioxus::dioxus_core::Element;
 use dioxus::hooks::UnboundedSender;
+use dioxus::logger::tracing::debug;
+use futures::channel::oneshot;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
 use crate::rust_component::RustComponent;
+
 pub use dioxus_web_component_macro::web_component;
 
 mod event;
@@ -21,7 +24,7 @@ pub use self::style::*;
 mod rust_component;
 
 /// Re-export, use this trait in the coroutine
-pub use futures_util::StreamExt;
+pub use futures::StreamExt;
 
 /// Message from web component to dioxus
 #[derive(Debug)]
@@ -39,37 +42,69 @@ pub enum Message {
         /// Property name
         name: String,
         /// reply channel
-        tx: mpsc::SyncSender<JsValue>,
+        tx: oneshot::Sender<SharedJsValue>,
     },
     /// Set property
     Set {
         /// Property name
         name: String,
         /// Property value
-        value: JsValue,
+        value: SharedJsValue,
     },
 }
+
+#[derive(Clone)]
+struct SharedEventTarget(web_sys::HtmlElement);
+
+#[allow(unsafe_code)]
+// SAFETY:
+// In a Web WASM context, without thread.
+// This only be used to display an event, no update are made here
+unsafe impl Send for SharedEventTarget {}
+
+#[allow(unsafe_code)]
+// SAFETY:
+// In a Web WASM context, without thread.
+// This only be used to display an event, no update are made here
+unsafe impl Sync for SharedEventTarget {}
+
+#[doc(hidden)]
+#[derive(Debug, Clone)]
+pub struct SharedJsValue(JsValue);
+
+#[allow(unsafe_code)]
+// SAFETY:
+// In a Web WASM context, without thread.
+// This only be used to display an event, no update are made here
+unsafe impl Send for SharedJsValue {}
+
+#[allow(unsafe_code)]
+// SAFETY:
+// In a Web WASM context, without thread.
+// This only be used to display an event, no update are made here
+unsafe impl Sync for SharedJsValue {}
 
 /// A context provided by the web component
 #[derive(Clone)]
 pub struct Shared {
     attributes: Vec<String>,
-    event_target: web_sys::HtmlElement,
-    tx: Rc<RwLock<Option<UnboundedSender<Message>>>>,
+    event_target: SharedEventTarget,
+    tx: Arc<RwLock<Option<UnboundedSender<Message>>>>,
 }
 
 impl Shared {
     /// The web component event target use to dispatch custom event
     #[must_use]
-    pub fn event_target(&self) -> HtmlElement {
-        self.event_target.clone()
+    pub fn event_target(&self) -> &HtmlElement {
+        &self.event_target.0
     }
 
     /// Set the receiver
     pub fn set_tx(&mut self, tx: UnboundedSender<Message>) {
         // initial state
+        let trg = self.event_target();
         for attr in &self.attributes {
-            let Some(value) = self.event_target.get_attribute(attr) else {
+            let Some(value) = trg.get_attribute(attr) else {
                 continue;
             };
             let _ = tx.unbounded_send(Message::SetAttribute {
@@ -77,8 +112,9 @@ impl Shared {
                 value: Some(value),
             });
         }
+
         // Keep sender (skip if poisoned)
-        if let Ok(mut cell) = self.tx.try_write() {
+        if let Ok(mut cell) = self.tx.write() {
             *cell = Some(tx);
         }
     }
@@ -105,14 +141,15 @@ pub trait DioxusWebComponent {
     }
 
     /// Handle a message
-    fn handle_message(&mut self, msg: Message) {
-        match msg {
+    fn handle_message(&mut self, message: Message) {
+        debug!(?message, "handle message");
+        match message {
             Message::SetAttribute { name, value } => self.set_attribute(&name, value),
             Message::Get { name, tx } => {
                 let value = self.get_property(&name);
-                let _ = tx.send(value);
+                let _ = tx.send(SharedJsValue(value));
             }
-            Message::Set { name, value } => self.set_property(&name, value),
+            Message::Set { name, value } => self.set_property(&name, value.0),
         }
     }
 }

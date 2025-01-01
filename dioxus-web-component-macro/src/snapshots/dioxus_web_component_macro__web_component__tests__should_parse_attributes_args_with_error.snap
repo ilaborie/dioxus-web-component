@@ -1,0 +1,16 @@
+---
+source: dioxus-web-component-macro/src/web_component.rs
+expression: error
+snapshot_kind: text
+---
+Error {
+    kind: Custom(
+        "a custom element tag should contains an hyphen '-', having \"toto\"",
+    ),
+    locations: [
+        "tag",
+    ],
+    span: Some(
+        bytes(5..11),
+    ),
+}

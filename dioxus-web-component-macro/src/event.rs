@@ -88,6 +88,14 @@ impl Event {
         })
     }
 
+    pub(super) fn rsx_attribute(&self) -> TokenStream {
+        let ident = &self.ident;
+
+        quote! {
+            #ident,
+        }
+    }
+
     pub(super) fn new_instance(&self, shared: &Ident) -> TokenStream {
         let Self {
             ident,
@@ -100,7 +108,7 @@ impl Event {
 
         quote! {
             let #ident = ::dioxus_web_component::custom_event_handler(
-                #shared.event_target(),
+                #shared.event_target().clone(),
                 #web_event_name,
                 ::dioxus_web_component::CustomEventOptions {
                     can_bubble: #can_bubble,

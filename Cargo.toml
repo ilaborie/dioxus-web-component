@@ -3,6 +3,7 @@ members = [
   "dioxus-web-component",
   "dioxus-web-component-macro",
   "examples/counter",
+  "examples/dx-in-dx",
   "examples/greeting",
 ]
 resolver = "2"
@@ -12,21 +13,20 @@ edition = "2021"
 authors = ["ilaborie@gmail.com"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ilaborie/dioxus-web-component"
-rust-version = "1.75.0"
+rust-version = "1.79.0"
 
 [workspace.dependencies]
-dioxus = "0.5.1"
-wasm-bindgen = "0.2.92"
-wasm-bindgen-futures = "0.4.42"
-web-sys = "0.3.68"
-syn = "2.0.46"
-quote = "1.0.35"
-proc-macro2 = "1.0.74"
-darling = "0.20.0"
+dioxus = "0.6.1"
+wasm-bindgen = "0.2.99"
+wasm-bindgen-futures = "0.4.49"
+web-sys = "0.3.76"
+syn = "2.0.90"
+quote = "1.0.37"
+proc-macro2 = "1.0.92"
+darling = "0.20.10"
 heck = "0.5.0"
-futures-util = { version = "0.3.30", default-features = false }
-# tracing = "0.1.40"
-# wasm-tracing = "0.2.1"
+futures = "0.3.31"
+insta = "1.41.1"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -62,3 +62,13 @@ codegen-units = 1
 panic = "abort"
 strip = true
 incremental = false
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

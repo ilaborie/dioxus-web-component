@@ -174,9 +174,13 @@ impl Property {
 
         quote! {
             #name => {
-                Ok(self.#ident.read().clone())
+                let value = self.#ident.read().clone();
+                Ok(value)
                     .and_then(#try_into_js)
-                    .unwrap_or(::wasm_bindgen::JsValue::undefined())
+                    .unwrap_or_else(|err| {
+                        ::dioxus::logger::tracing::warn!("get {} conversion error {:?}, return undefined", #name, err);
+                        wasm_bindgen::JsValue::undefined()
+                    })
             }
         }
     }
@@ -244,7 +248,6 @@ Or, disable the typescript generation with `#[web_component(no_typescript = true
 
 #[allow(clippy::match_same_arms)]
 fn extract_path_segment_js_type(segment: &PathSegment, errors: &mut Accumulator) -> Option<String> {
-    // dbg!(&segment);
     let ident = segment.ident.to_string();
     match ident.to_string().as_str() {
         "bool" => Some("boolean".to_string()),

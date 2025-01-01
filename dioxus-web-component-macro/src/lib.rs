@@ -1,9 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::multiple_crate_versions)]
 
-use darling::ast::NestedMeta;
 use proc_macro::TokenStream;
-use quote::quote;
 use syn::ItemFn;
 
 mod web_component;
@@ -23,34 +21,52 @@ pub(crate) use self::event::Event;
 
 pub(crate) mod tag;
 
-/// Proc macro to create the web component glue
+#[doc = include_str!("./doc.md")]
 #[proc_macro_attribute]
 pub fn web_component(args: TokenStream, input: TokenStream) -> TokenStream {
     let item = syn::parse_macro_input!(input as ItemFn);
 
     let mut errors = darling::Error::accumulator();
-    let attr_args = errors
-        .handle(NestedMeta::parse_meta_list(args.into()).map_err(Into::into))
-        .unwrap_or_default();
-
-    let wc = WebComponent::parse(&attr_args, item, &mut errors);
-    let dioxus_component = wc.dioxus_component();
-    let register_fn = wc.register_fn();
-    let web_component = wc.web_component();
-    let impl_web_component = wc.impl_dioxus_web_component();
-    let builder_fn = wc.builder_fn();
-    let typescript = wc.typescript(&mut errors);
+    let wc = WebComponent::parse(args.into(), item, &mut errors);
+    let result = wc.generate(&mut errors);
 
     if let Err(err) = errors.finish() {
         return TokenStream::from(err.write_errors());
     }
 
-    proc_macro::TokenStream::from(quote! {
-        #dioxus_component
-        #register_fn
-        #web_component
-        #impl_web_component
-        #builder_fn
-        #typescript
-    })
+    proc_macro::TokenStream::from(result)
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used)]
+mod tests {
+    use super::*;
+    use assert2::let_assert;
+    use syn::ItemFn;
+
+    #[test]
+    fn should_parse_multiple_events() {
+        let_assert!(Ok(args) = "".parse());
+        let input = "fn MyWebComponent(
+     #[event] on_event: EventHandler<i64>,
+     #[event] on_snake_evt: EventHandler<bool>,
+) -> Element {
+    rsx!()
+}";
+        let item = syn::parse_str::<ItemFn>(input).expect("valid rust code");
+
+        let mut errors = darling::Error::accumulator();
+        let wc = WebComponent::parse(args, item, &mut errors);
+
+        let tokens = wc.generate(&mut errors);
+        let syntax_tree = syn::parse_file(&tokens.to_string()).expect("a file");
+        let formatted = prettyplease::unparse(&syntax_tree);
+        insta::assert_snapshot!(formatted);
+
+        // insta::assert_debug_snapshot!(tokens);
+        // insta::assert_snapshot!(tokens);
+
+        let errors = errors.finish();
+        errors.expect("no errors");
+    }
 }

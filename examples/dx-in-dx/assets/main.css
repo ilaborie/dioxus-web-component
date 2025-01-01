@@ -1,0 +1,26 @@
+body {
+  background-color: #111216;
+  color: white;
+}
+
+#main {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#links {
+  width: 400px;
+  text-align: left;
+  font-size: x-large;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+#header {
+  max-width: 1200px;
+}

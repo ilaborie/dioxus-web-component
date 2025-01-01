@@ -32,7 +32,7 @@ fn MyWebComponent(
         bool,
     >,
 ) -> Element {
-    None
+    rsx!()
 }
 
 #[derive(Clone, PartialEq)]

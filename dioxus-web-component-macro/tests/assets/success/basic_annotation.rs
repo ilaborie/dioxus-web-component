@@ -11,5 +11,5 @@ fn MyWebComponent(
     #[event] event: EventHandler<i64>,
     #[event] on_snake_evt: EventHandler<bool>,
 ) -> Element {
-    None
+    rsx!()
 }
