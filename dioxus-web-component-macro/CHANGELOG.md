@@ -6,11 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.3](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.3.2...dioxus-web-component-macro-v0.3.3) - 2024-09-29
-
-### Other
-
-- *(deps)* update rstest requirement from 0.19.0 to 0.23.0 ([#50](https://github.com/ilaborie/dioxus-web-component/pull/50))
+## [0.4.0](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.3.2...dioxus-web-component-macro-v0.4.0) - 2024-09-29
+- Support Dioxus 0.6
 
 ## [0.3.2](https://github.com/ilaborie/dioxus-web-component/compare/dioxus-web-component-macro-v0.3.1...dioxus-web-component-macro-v0.3.2) - 2024-06-02
 

@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-web-component"
-version = "0.3.3"
+version = "0.4.0"
 edition = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
@@ -21,7 +21,7 @@ macros = ["dep:dioxus-web-component-macro"]
 [dependencies]
 dioxus = { workspace = true, features = ["web", "logger"] }
 dioxus-web = "0.6.1"
-dioxus-web-component-macro = { version = "0.3.3", path = "../dioxus-web-component-macro", optional = true }
+dioxus-web-component-macro = { version = "0.4.0", path = "../dioxus-web-component-macro", optional = true }
 futures = { workspace = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
